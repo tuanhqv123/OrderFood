@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html
+  xmlns:th="http://www.thymeleaf.org"
+  th:replace="~{fragments/layout :: layout(~{::title}, ~{::section})}"
+>
+  <head>
+    <title>Error - Restaurant Ordering System</title>
+  </head>
+  <body>
+    <section>
+      <div class="row justify-content-center">
+        <div class="col-md-8">
+          <div class="card shadow">
+            <div class="card-body text-center">
+              <i class="fas fa-exclamation-triangle text-danger fa-5x mb-3"></i>
+              <h2 class="card-title">Oops! Something went wrong</h2>
+              <p class="card-text" th:if="${error}" th:text="${error}">
+                An error occurred.
+              </p>
+              <p class="card-text" th:unless="${error}">
+                An unexpected error occurred. Please try again later.
+              </p>
+
+              <div class="mt-4">
+                <a href="/" class="btn btn-primary me-2">
+                  <i class="fas fa-home"></i> Home
+                </a>
+                <a href="javascript:history.back()" class="btn btn-secondary">
+                  <i class="fas fa-arrow-left"></i> Go Back
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </body>
+</html>

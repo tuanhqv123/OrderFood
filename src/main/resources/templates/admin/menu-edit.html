@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html
+  xmlns:th="http://www.thymeleaf.org"
+  th:replace="~{fragments/layout :: layout(~{::title}, ~{::section})}"
+>
+  <head>
+    <title>Chỉnh sửa món ăn - Restaurant Ordering System</title>
+  </head>
+  <body>
+    <section>
+      <div class="container">
+        <div class="row justify-content-center">
+          <div class="col-md-8">
+            <div class="card shadow-sm">
+              <div class="card-header bg-white">
+                <h5 class="mb-0">Chỉnh sửa món ăn</h5>
+              </div>
+              <div class="card-body">
+                <form
+                  th:action="@{/admin/menu-management/edit/{id}(id=${menuItem.id})}"
+                  method="post"
+                >
+                  <div class="mb-3">
+                    <label for="name" class="form-label">Tên món</label>
+                    <input
+                      type="text"
+                      class="form-control"
+                      id="name"
+                      name="name"
+                      th:value="${menuItem.name}"
+                      required
+                    />
+                  </div>
+
+                  <div class="mb-3">
+                    <label for="price" class="form-label">Giá (VND)</label>
+                    <input
+                      type="number"
+                      class="form-control"
+                      id="price"
+                      name="price"
+                      th:value="${menuItem.price}"
+                      min="0"
+                      step="1000"
+                      required
+                    />
+                  </div>
+
+                  <div class="mb-3">
+                    <label for="category" class="form-label">Danh mục</label>
+                    <select
+                      class="form-select"
+                      id="category"
+                      name="category"
+                      required
+                    >
+                      <option value="">Chọn danh mục</option>
+                      <option
+                        value="main"
+                        th:selected="${menuItem.category == 'main'}"
+                      >
+                        Món chính
+                      </option>
+                      <option
+                        value="appetizer"
+                        th:selected="${menuItem.category == 'appetizer'}"
+                      >
+                        Khai vị
+                      </option>
+                      <option
+                        value="dessert"
+                        th:selected="${menuItem.category == 'dessert'}"
+                      >
+                        Tráng miệng
+                      </option>
+                      <option
+                        value="beverage"
+                        th:selected="${menuItem.category == 'beverage'}"
+                      >
+                        Đồ uống
+                      </option>
+                    </select>
+                  </div>
+
+                  <div class="mb-3">
+                    <label for="imageUrl" class="form-label"
+                      >URL hình ảnh</label
+                    >
+                    <input
+                      type="text"
+                      class="form-control"
+                      id="imageUrl"
+                      name="imageUrl"
+                      th:value="${menuItem.imageUrl}"
+                      required
+                    />
+                    <div class="form-text">
+                      Nhập URL hình ảnh từ internet (ví dụ:
+                      https://example.com/image.jpg)
+                    </div>
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label">Xem trước hình ảnh</label>
+                    <div class="border rounded p-2">
+                      <img
+                        th:src="${menuItem.imageUrl}"
+                        id="imagePreview"
+                        class="img-fluid"
+                        style="
+                          max-height: 200px;
+                          width: 100%;
+                          object-fit: cover;
+                        "
+                        alt="Hình ảnh món ăn"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="d-flex justify-content-between">
+                    <a
+                      th:href="@{/admin/menu-management}"
+                      class="btn btn-outline-secondary"
+                    >
+                      <i class="fas fa-arrow-left"></i> Quay lại
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                      <i class="fas fa-save"></i> Lưu thay đổi
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        // Cập nhật xem trước hình ảnh khi URL thay đổi
+        const imageUrlInput = document.getElementById("imageUrl");
+        const imagePreview = document.getElementById("imagePreview");
+
+        imageUrlInput.addEventListener("input", function () {
+          imagePreview.src =
+            this.value || "https://via.placeholder.com/400x300?text=No+Image";
+        });
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html
+  xmlns:th="http://www.thymeleaf.org"
+  th:replace="~{fragments/layout :: layout(~{::title}, ~{::section})}"
+>
+  <head>
+    <title>Order Status - Restaurant Ordering System</title>
+  </head>
+  <body>
+    <section id="orderStatusPage">
+      <div class="row justify-content-center">
+        <div class="col-lg-8">
+          <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+              <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                  <i class="fas fa-clipboard-list"></i> Order #<span
+                    th:text="${order.id}"
+                    >123</span
+                  >
+                </h5>
+                <div>
+                  <a
+                    th:href="@{/order/refresh/{id}(id=${order.id}, tableId=${tableId})}"
+                    class="btn btn-sm btn-light me-2"
+                  >
+                    <i class="fas fa-sync-alt"></i> Refresh
+                  </a>
+                  <span
+                    id="orderStatus"
+                    th:data-order-id="${order.id}"
+                    th:data-last-status="${order.status}"
+                    th:class="'badge status-' + ${#strings.toLowerCase(order.status)}"
+                    th:text="${order.status}"
+                    >PENDING</span
+                  >
+                </div>
+              </div>
+            </div>
+            <div class="card-body">
+              <!-- Order Progress -->
+              <div class="mb-4">
+                <h6>Order Progress:</h6>
+                <div class="progress">
+                  <div
+                    class="progress-bar bg-success"
+                    role="progressbar"
+                    th:style="'width: ' + (${order.status == 'PENDING' ? 25 : 
+                                                           order.status == 'PREPARING' ? 50 : 
+                                                           order.status == 'READY' ? 75 : 
+                                                           order.status == 'COMPLETED' ? 100 : 0}) + '%'"
+                  ></div>
+                </div>
+                <div class="d-flex justify-content-between mt-1">
+                  <small>Pending</small>
+                  <small>Preparing</small>
+                  <small>Ready</small>
+                  <small>Completed</small>
+                </div>
+              </div>
+
+              <!-- Order Details -->
+              <div class="row mb-4">
+                <div class="col-md-6">
+                  <h6>Order Information:</h6>
+                  <p class="mb-1">
+                    <strong>Table:</strong> #<span th:text="${order.table.id}"
+                      >1</span
+                    >
+                  </p>
+                  <p class="mb-1">
+                    <strong>Date:</strong>
+                    <span
+                      th:text="${#temporals.format(order.createdAt, 'dd/MM/yyyy HH:mm')}"
+                      >01/01/2023 12:00</span
+                    >
+                  </p>
+                  <p class="mb-1">
+                    <strong>Total:</strong>
+                    <span
+                      th:text="${#numbers.formatDecimal(order.totalAmount, 0, 'COMMA', 0, 'POINT') + ' VND'}"
+                      >0 VND</span
+                    >
+                  </p>
+                </div>
+                <div class="col-md-6">
+                  <h6>Customer Information:</h6>
+                  <p class="mb-1" th:if="${order.customer != null}">
+                    <strong>Phone:</strong>
+                    <span th:text="${order.customer.phoneNumber}"
+                      >0123456789</span
+                    >
+                  </p>
+                  <p class="mb-1" th:if="${order.customer != null}">
+                    <strong>Points Earned:</strong>
+                    <span th:text="${order.pointsEarned}">0</span>
+                  </p>
+                  <p class="mb-1" th:if="${order.customer != null}">
+                    <strong>Points Used:</strong>
+                    <span th:text="${order.pointsUsed}">0</span>
+                  </p>
+                  <p class="mb-1" th:unless="${order.customer != null}">
+                    <em>No customer information provided</em>
+                  </p>
+                </div>
+              </div>
+
+              <!-- Order Items -->
+              <h6>Order Items:</h6>
+              <div class="table-responsive">
+                <table class="table table-striped">
+                  <thead>
+                    <tr>
+                      <th>Item</th>
+                      <th>Price</th>
+                      <th>Quantity</th>
+                      <th>Subtotal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr th:each="item : ${order.orderItems}">
+                      <td th:text="${item.menuItem.name}">Item Name</td>
+                      <td
+                        th:text="${#numbers.formatDecimal(item.menuItem.price, 0, 'COMMA', 0, 'POINT') + ' VND'}"
+                      >
+                        Price
+                      </td>
+                      <td th:text="${item.quantity}">1</td>
+                      <td
+                        th:text="${#numbers.formatDecimal(item.menuItem.price.multiply(new java.math.BigDecimal(item.quantity)), 0, 'COMMA', 0, 'POINT') + ' VND'}"
+                      >
+                        Subtotal
+                      </td>
+                    </tr>
+                  </tbody>
+                  <tfoot>
+                    <tr class="table-active">
+                      <th colspan="3" class="text-end">Total:</th>
+                      <th
+                        th:text="${#numbers.formatDecimal(order.totalAmount, 0, 'COMMA', 0, 'POINT') + ' VND'}"
+                      >
+                        Total
+                      </th>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+
+              <!-- Order Actions -->
+              <div class="d-flex justify-content-between mt-4">
+                <a
+                  th:href="@{/menu(table=${tableId})}"
+                  class="btn btn-outline-primary"
+                >
+                  <i class="fas fa-utensils"></i> Back to Menu
+                </a>
+
+                <form
+                  th:if="${order.status == 'PENDING'}"
+                  th:action="@{/order/cancel}"
+                  method="post"
+                >
+                  <input type="hidden" name="orderId" th:value="${order.id}" />
+                  <input type="hidden" name="tableId" th:value="${tableId}" />
+                  <button
+                    type="submit"
+                    class="btn btn-danger"
+                    data-confirm="true"
+                    data-confirm-message="Are you sure you want to cancel this order?"
+                  >
+                    <i class="fas fa-times-circle"></i> Cancel Order
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Auto-refresh notice -->
+      <div class="text-center mt-3">
+        <small class="text-muted">
+          <i class="fas fa-sync-alt"></i> This page refreshes automatically
+          every 30 seconds to show the latest order status. You can also click
+          the refresh button to update immediately.
+        </small>
+      </div>
+    </section>
+  </body>
+</html>

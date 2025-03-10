@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html
+  xmlns:th="http://www.thymeleaf.org"
+  th:replace="~{fragments/layout :: layout(~{::title}, ~{::section})}"
+>
+  <head>
+    <title>Menu - Restaurant Ordering System</title>
+  </head>
+  <body>
+    <section>
+      <div class="container-fluid">
+        <div class="row">
+          <!-- Menu Content - Left Side (8 columns) -->
+          <div class="col-md-8">
+            <!-- Table Information -->
+            <div class="card mb-4">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                  <h5 class="mb-0">
+                    <i class="fas fa-table"></i> Bàn #<span th:text="${tableId}"
+                      >1</span
+                    >
+                  </h5>
+                </div>
+              </div>
+            </div>
+
+            <!-- Product Lists -->
+            <div class="product-lists">
+              <div class="category-pills mb-4">
+                <a
+                  th:href="@{/menu(table=${tableId})}"
+                  class="category-pill"
+                  th:classappend="${category == null ? 'active' : ''}"
+                >
+                  Tất cả món
+                </a>
+                <a
+                  th:href="@{/menu/category/appetizer(table=${tableId})}"
+                  class="category-pill"
+                  th:classappend="${category == 'appetizer' ? 'active' : ''}"
+                >
+                  Khai vị
+                </a>
+                <a
+                  th:href="@{/menu/category/main(table=${tableId})}"
+                  class="category-pill"
+                  th:classappend="${category == 'main' ? 'active' : ''}"
+                >
+                  Món chính
+                </a>
+                <a
+                  th:href="@{/menu/category/dessert(table=${tableId})}"
+                  class="category-pill"
+                  th:classappend="${category == 'dessert' ? 'active' : ''}"
+                >
+                  Tráng miệng
+                </a>
+                <a
+                  th:href="@{/menu/category/beverage(table=${tableId})}"
+                  class="category-pill"
+                  th:classappend="${category == 'beverage' ? 'active' : ''}"
+                >
+                  Đồ uống
+                </a>
+              </div>
+            </div>
+
+            <!-- Skeleton Loader -->
+            <div class="skeleton-loader" data-content-id="menuContent">
+              <div class="row">
+                <div
+                  class="col-md-4 mb-4"
+                  th:each="i : ${#numbers.sequence(1, 6)}"
+                >
+                  <div class="card">
+                    <div class="skeleton" style="height: 180px"></div>
+                    <div class="card-body">
+                      <div class="skeleton" style="width: 70%"></div>
+                      <div class="skeleton" style="width: 40%"></div>
+                      <div class="skeleton" style="width: 90%"></div>
+                      <div
+                        class="skeleton"
+                        style="width: 100%; height: 40px"
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Menu Items -->
+            <div id="menuContent" class="d-none">
+              <h3
+                th:if="${category}"
+                th:text="${#strings.capitalize(category) + ' Menu'}"
+                class="mb-4"
+              >
+                Category Menu
+              </h3>
+              <h3 th:unless="${category}" class="mb-4">Thực đơn</h3>
+
+              <div class="row">
+                <div class="col-md-4 mb-4" th:each="item : ${menuItems}">
+                  <div class="card menu-item-card">
+                    <!-- Food Badge (Popular, New, etc) -->
+                    <div
+                      th:if="${item.category == 'main'}"
+                      class="food-badge popular"
+                    >
+                      Phổ biến
+                    </div>
+                    <div
+                      th:if="${item.category == 'dessert'}"
+                      class="food-badge new"
+                    >
+                      Mới
+                    </div>
+                    <div
+                      th:if="${item.category == 'appetizer'}"
+                      class="food-badge special"
+                    >
+                      Đặc biệt
+                    </div>
+
+                    <!-- Image based on category -->
+                    <img
+                      th:src="${item.imageUrl}"
+                      class="card-img-top"
+                      alt="Food Image"
+                      style="height: 200px; object-fit: cover"
+                    />
+
+                    <div class="card-body">
+                      <h5 class="card-title" th:text="${item.name}">
+                        Item Name
+                      </h5>
+                      <div
+                        class="menu-item-category"
+                        th:text="${item.category}"
+                      >
+                        Category
+                      </div>
+                      <p
+                        class="price"
+                        th:text="${#numbers.formatDecimal(item.price, 0, 'COMMA', 0, 'POINT') + ' VND'}"
+                      >
+                        Price
+                      </p>
+
+                      <div class="product-actions">
+                        <div class="quantity-control">
+                          <button
+                            type="button"
+                            class="btn decrease"
+                            onclick="window.appHandlers.updateQuantity(this, -1)"
+                          >
+                            <i class="fas fa-minus"></i>
+                          </button>
+                          <input
+                            type="number"
+                            class="form-control text-center item-quantity"
+                            value="1"
+                            min="1"
+                            max="10"
+                            th:attr="data-item-id=${item.id}"
+                            onchange="window.appHandlers.validateQuantity(this)"
+                            readonly
+                          />
+                          <button
+                            type="button"
+                            class="btn increase"
+                            onclick="window.appHandlers.updateQuantity(this, 1)"
+                          >
+                            <i class="fas fa-plus"></i>
+                          </button>
+                        </div>
+
+                        <button
+                          type="button"
+                          class="btn btn-add-to-cart"
+                          th:attr="data-item-id=${item.id}, data-table-id=${tableId}"
+                        >
+                          <i class="fas fa-cart-plus"></i> Add to Cart
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Empty State -->
+              <div th:if="${menuItems.empty}" class="text-center py-5">
+                <i class="fas fa-utensils fa-3x text-muted mb-3"></i>
+                <h4>Không có món ăn nào</h4>
+                <p class="text-muted">
+                  Vui lòng quay lại sau hoặc thử danh mục khác.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Cart Sidebar - Right Side (4 columns) -->
+          <div class="col-md-4">
+            <div class="card sticky-top" style="top: 20px">
+              <div class="card-header">
+                <h5 class="mb-0">
+                  <i class="fas fa-shopping-cart"></i> Giỏ hàng
+                </h5>
+              </div>
+              <div class="card-body" id="cartSidebar">
+                <!-- Cart Items will be loaded here via JavaScript -->
+                <div class="cart-items">
+                  <div
+                    th:if="${cart != null && cart.items.empty}"
+                    class="text-center py-3"
+                    id="emptyCartMessage"
+                  >
+                    <i class="fas fa-shopping-basket fa-2x text-muted mb-2"></i>
+                    <p class="text-muted">Giỏ hàng trống</p>
+                  </div>
+
+                  <div
+                    th:if="${cart != null && !cart.items.empty}"
+                    id="cartItemsList"
+                  >
+                    <div
+                      th:each="item : ${cart.items}"
+                      class="cart-item mb-3"
+                      th:attr="data-item-id=${item.menuItem.id}"
+                    >
+                      <img
+                        th:src="${item.menuItem.imageUrl}"
+                        class="cart-item-image"
+                        alt="Food Image"
+                      />
+                      <div class="cart-item-details">
+                        <h6
+                          class="cart-item-name"
+                          th:text="${item.menuItem.name}"
+                        >
+                          Item Name
+                        </h6>
+                        <div
+                          class="cart-item-price"
+                          th:text="${#numbers.formatDecimal(item.menuItem.price, 0, 'COMMA', 0, 'POINT') + ' VND'}"
+                        >
+                          Price
+                        </div>
+                      </div>
+                      <div class="cart-item-actions">
+                        <div class="quantity-control">
+                          <button
+                            type="button"
+                            class="btn decrease"
+                            onclick="window.appHandlers.updateQuantity(this, -1)"
+                          >
+                            <i class="fas fa-minus"></i>
+                          </button>
+                          <input
+                            type="number"
+                            class="form-control text-center item-quantity"
+                            th:value="${item.quantity}"
+                            min="1"
+                            max="10"
+                            th:attr="data-item-id=${item.menuItem.id}"
+                            onchange="window.appHandlers.validateQuantity(this)"
+                            readonly
+                          />
+                          <button
+                            type="button"
+                            class="btn increase"
+                            onclick="window.appHandlers.updateQuantity(this, 1)"
+                          >
+                            <i class="fas fa-plus"></i>
+                          </button>
+                        </div>
+                        <button
+                          class="btn btn-sm remove-item-btn"
+                          th:attr="data-item-id=${item.menuItem.id}, data-table-id=${tableId}"
+                        >
+                          <i class="fas fa-times"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <hr th:if="${cart != null && !cart.items.empty}" />
+
+                <div
+                  class="cart-summary"
+                  th:if="${cart != null && !cart.items.empty}"
+                >
+                  <div class="d-flex justify-content-between mb-2">
+                    <span class="total-label">Tổng cộng:</span>
+                    <span
+                      class="total-amount"
+                      id="cartTotal"
+                      th:text="${#numbers.formatDecimal(cart.total, 0, 'COMMA', 0, 'POINT') + ' VND'}"
+                      >0 VND</span
+                    >
+                  </div>
+
+                  <div class="d-grid gap-2">
+                    <button
+                      type="button"
+                      class="btn place-order-btn"
+                      th:attr="data-table-id=${tableId}"
+                    >
+                      <i class="fas fa-utensils"></i> Đặt món
+                    </button>
+
+                    <button
+                      type="button"
+                      class="btn btn-payment payment-btn"
+                      th:attr="data-table-id=${tableId}"
+                    >
+                      <i class="fas fa-credit-card"></i> Thanh toán
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Order Confirmation Modal -->
+      <div
+        class="modal fade"
+        id="orderConfirmModal"
+        tabindex="-1"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Xác nhận đặt món</h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <p>Bạn có chắc chắn muốn đặt những món ăn này?</p>
+              <div id="orderConfirmItems"></div>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Hủy
+              </button>
+              <button type="button" class="btn btn-success confirm-order-btn">
+                Xác nhận đặt món
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment Modal -->
+      <div
+        class="modal fade payment-modal"
+        id="paymentModal"
+        tabindex="-1"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Thanh toán</h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <div class="bill-details mb-4">
+                <h6 class="mb-3">Chi tiết hóa đơn</h6>
+                <div id="billItems"></div>
+                <div class="total-row">
+                  <span>Tổng cộng</span>
+                  <span id="billTotal">0 VND</span>
+                </div>
+              </div>
+
+              <div class="customer-info-section">
+                <p>Nhập số điện thoại để tích điểm (không bắt buộc):</p>
+                <div class="mb-3">
+                  <input
+                    type="tel"
+                    class="form-control"
+                    id="phoneNumber"
+                    placeholder="Nhập số điện thoại của bạn"
+                  />
+                  <div class="form-text">
+                    Bỏ trống nếu bạn không muốn tích điểm.
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Hủy
+              </button>
+              <button type="button" class="btn btn-primary confirm-payment-btn">
+                Xác nhận thanh toán
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Order Success Modal -->
+      <div
+        class="modal fade"
+        id="orderSuccessModal"
+        tabindex="-1"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+              <h5 class="modal-title">
+                <i class="fas fa-check-circle"></i> Đặt món thành công
+              </h5>
+              <button
+                type="button"
+                class="btn-close btn-close-white"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
+            </div>
+            <div class="modal-body text-center">
+              <div class="py-4">
+                <i class="fas fa-utensils fa-4x text-success mb-3"></i>
+                <h4>Cảm ơn bạn đã đặt món!</h4>
+                <p class="mb-0">Đơn hàng của bạn đã được gửi đến nhà bếp.</p>
+                <p class="text-muted">
+                  Mã đơn hàng: <span id="orderNumber">12345</span>
+                </p>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-primary"
+                data-bs-dismiss="modal"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment Success Modal -->
+      <div
+        class="modal fade"
+        id="paymentSuccessModal"
+        tabindex="-1"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+              <h5 class="modal-title">
+                <i class="fas fa-check-circle"></i> Thanh toán thành công
+              </h5>
+              <button
+                type="button"
+                class="btn-close btn-close-white"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
+            </div>
+            <div class="modal-body text-center">
+              <div class="py-4">
+                <i class="fas fa-credit-card fa-4x text-success mb-3"></i>
+                <h4>Cảm ơn bạn!</h4>
+                <p class="mb-0">Thanh toán của bạn đã được xử lý thành công.</p>
+                <p class="text-muted">
+                  Mã hóa đơn: <span id="invoiceNumber">INV-12345</span>
+                </p>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-primary"
+                data-bs-dismiss="modal"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <script th:inline="javascript">
+      window.appHandlers = {
+        // Cập nhật số lượng trên UI và gọi API nếu cần
+        updateQuantity: function (button, change) {
+          const container = button.closest(".quantity-control");
+          const input = container.querySelector(".item-quantity");
+          const currentValue = parseInt(input.value) || 1;
+
+          // Tính toán giá trị mới
+          const newValue = Math.max(
+            1,
+            Math.min(10, currentValue + (change > 0 ? 1 : -1))
+          );
+
+          // Cập nhật UI
+          input.value = newValue;
+
+          // Nếu đang trong cart sidebar thì update cart
+          if (button.closest("#cartSidebar")) {
+            const itemId = input.getAttribute("data-item-id");
+            const tableId = /*[[${tableId}]]*/ null;
+            this.updateCartItem(itemId, tableId, newValue);
+          }
+        },
+
+        // Gọi API cập nhật số lượng trong cart
+        updateCartItem: function (itemId, tableId, quantity) {
+          console.log("Updating cart item:", { itemId, tableId, quantity });
+
+          fetch(
+            `/api/cart/update-quantity?menuItemId=${itemId}&quantity=${quantity}&tableId=${tableId}`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+            }
+          )
+            .then((response) => response.json())
+            .then((data) => {
+              console.log("Update cart response:", data);
+              if (data.success) {
+                this.refreshCartSidebar(tableId);
+              }
+            })
+            .catch((error) => {
+              console.error("Error updating cart:", error);
+            });
+        },
+
+        // Refresh cart sidebar từ server
+        refreshCartSidebar: function (tableId) {
+          console.log("Refreshing cart sidebar for table:", tableId);
+
+          fetch(`/cart/sidebar?tableId=${tableId}`)
+            .then((response) => response.text())
+            .then((html) => {
+              const sidebar = document.getElementById("cartSidebar");
+              sidebar.innerHTML = html;
+              this.attachCartEvents(sidebar);
+            })
+            .catch((error) => {
+              console.error("Error refreshing cart:", error);
+            });
+        },
+
+        // Validate input số lượng
+        validateQuantity: function (input) {
+          let value = parseInt(input.value) || 1;
+          value = Math.max(1, Math.min(10, value));
+          input.value = value;
+        },
+
+        // Reset số lượng về 1 cho menu item
+        resetMenuItemQuantity: function (menuItemId) {
+          const menuItemQuantityInput = document.querySelector(
+            `.product-actions .item-quantity[data-item-id="${menuItemId}"]`
+          );
+          if (menuItemQuantityInput) {
+            menuItemQuantityInput.value = 1;
+          }
+        },
+
+        // Gắn các event handlers cho cart sidebar
+        attachCartEvents: function (container) {
+          // Quantity control events
+          container
+            .querySelectorAll(".quantity-control button")
+            .forEach((button) => {
+              button.onclick = (e) => {
+                e.preventDefault();
+                const isIncrease = button.classList.contains("increase");
+                this.updateQuantity(button, isIncrease ? 1 : -1);
+              };
+            });
+
+          // Remove button events
+          container.querySelectorAll(".remove-item-btn").forEach((button) => {
+            button.onclick = (e) => {
+              e.preventDefault();
+              const itemId = button.getAttribute("data-item-id");
+              const tableId = button.getAttribute("data-table-id");
+              this.removeFromCart(itemId, tableId);
+            };
+          });
+        },
+
+        // Xóa item khỏi cart
+        removeFromCart: function (itemId, tableId) {
+          console.log("Removing from cart:", { itemId, tableId });
+
+          fetch(
+            `/api/cart/remove-item?menuItemId=${itemId}&tableId=${tableId}`,
+            {
+              method: "DELETE",
+              headers: {
+                "Content-Type": "application/json",
+              },
+            }
+          )
+            .then((response) => response.json())
+            .then((data) => {
+              console.log("Remove item response:", data);
+              if (data.success) {
+                this.resetMenuItemQuantity(itemId);
+                this.refreshCartSidebar(tableId);
+              }
+            })
+            .catch((error) => {
+              console.error("Error removing item:", error);
+            });
+        },
+
+        // Thêm item vào cart
+        addToCart: function (button) {
+          const itemId = button.getAttribute("data-item-id");
+          const tableId = button.getAttribute("data-table-id");
+          const quantityInput = button
+            .closest(".product-actions")
+            .querySelector(".item-quantity");
+          const quantity = parseInt(quantityInput.value) || 1;
+
+          console.log("Adding to cart:", { itemId, tableId, quantity });
+
+          fetch(
+            `/api/cart/add-item?menuItemId=${itemId}&quantity=${quantity}&tableId=${tableId}`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+            }
+          )
+            .then((response) => response.json())
+            .then((data) => {
+              console.log("Add to cart response:", data);
+              if (data.success) {
+                // Reset quantity về 1 sau khi thêm thành công
+                this.resetMenuItemQuantity(itemId);
+                this.refreshCartSidebar(tableId);
+              }
+            })
+            .catch((error) => {
+              console.error("Error adding to cart:", error);
+            });
+        },
+      };
+
+      // Khởi tạo khi trang load
+      document.addEventListener("DOMContentLoaded", function () {
+        const tableId = /*[[${tableId}]]*/ null;
+
+        console.log("Initializing page for table:", tableId);
+
+        if (tableId) {
+          // Load cart sidebar
+          window.appHandlers.refreshCartSidebar(tableId);
+        }
+
+        // Gắn events cho các nút quantity trong menu
+        document
+          .querySelectorAll(".product-actions .quantity-control button")
+          .forEach((button) => {
+            button.onclick = (e) => {
+              e.preventDefault();
+              const isIncrease = button.classList.contains("increase");
+              window.appHandlers.updateQuantity(button, isIncrease ? 1 : -1);
+            };
+          });
+
+        // Gắn events cho các nút add to cart
+        document.querySelectorAll(".btn-add-to-cart").forEach((button) => {
+          button.onclick = (e) => {
+            e.preventDefault();
+            window.appHandlers.addToCart(button);
+          };
+        });
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html
+  xmlns:th="http://www.thymeleaf.org"
+  th:replace="~{fragments/layout :: layout(~{::title}, ~{::section})}"
+>
+  <head>
+    <title>Quản lý Menu - Restaurant Ordering System</title>
+  </head>
+  <body>
+    <section>
+      <div class="container">
+        <!-- Thông báo -->
+        <div
+          th:if="${success}"
+          class="alert alert-success alert-dismissible fade show"
+          role="alert"
+        >
+          <span th:text="${success}">Thao tác thành công!</span>
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="alert"
+            aria-label="Close"
+          ></button>
+        </div>
+
+        <div
+          th:if="${error}"
+          class="alert alert-danger alert-dismissible fade show"
+          role="alert"
+        >
+          <span th:text="${error}">Đã xảy ra lỗi!</span>
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="alert"
+            aria-label="Close"
+          ></button>
+        </div>
+
+        <div class="row mb-4">
+          <div class="col-md-8">
+            <h2 class="mb-3">Quản lý Menu</h2>
+          </div>
+          <div class="col-md-4 text-end">
+            <a th:href="@{/admin/menu-management/add}" class="btn btn-primary">
+              <i class="fas fa-plus"></i> Thêm món mới
+            </a>
+          </div>
+        </div>
+
+        <!-- Bộ lọc -->
+        <div class="card shadow-sm mb-4">
+          <div class="card-body">
+            <form
+              th:action="@{/admin/menu-management}"
+              method="get"
+              class="row g-3"
+            >
+              <div class="col-md-4">
+                <label for="category" class="form-label">Danh mục</label>
+                <select
+                  id="category"
+                  name="category"
+                  class="form-select"
+                  th:with="cat=${param.category}"
+                >
+                  <option value="">Tất cả danh mục</option>
+                  <option
+                    value="main"
+                    th:selected="${cat != null && cat[0] == 'main'}"
+                  >
+                    Món chính
+                  </option>
+                  <option
+                    value="appetizer"
+                    th:selected="${cat != null && cat[0] == 'appetizer'}"
+                  >
+                    Khai vị
+                  </option>
+                  <option
+                    value="dessert"
+                    th:selected="${cat != null && cat[0] == 'dessert'}"
+                  >
+                    Tráng miệng
+                  </option>
+                  <option
+                    value="beverage"
+                    th:selected="${cat != null && cat[0] == 'beverage'}"
+                  >
+                    Đồ uống
+                  </option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label for="status" class="form-label">Trạng thái</label>
+                <select
+                  id="status"
+                  name="status"
+                  class="form-select"
+                  th:with="stat=${param.status}"
+                >
+                  <option value="">Tất cả trạng thái</option>
+                  <option
+                    value="AVAILABLE"
+                    th:selected="${stat != null && stat[0] == 'AVAILABLE'}"
+                  >
+                    Có sẵn
+                  </option>
+                  <option
+                    value="UNAVAILABLE"
+                    th:selected="${stat != null && stat[0] == 'UNAVAILABLE'}"
+                  >
+                    Không có sẵn
+                  </option>
+                </select>
+              </div>
+              <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                  <i class="fas fa-filter"></i> Lọc
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Thao tác hàng loạt -->
+        <div class="card shadow-sm mb-4">
+          <div class="card-body">
+            <form
+              th:action="@{/admin/menu-management/toggle-multiple}"
+              method="post"
+            >
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="selectAll"
+                      onclick="toggleSelectAll(this)"
+                    />
+                    <label class="form-check-label" for="selectAll">
+                      Chọn tất cả
+                    </label>
+                  </div>
+                </div>
+                <div class="col-md-6 text-end">
+                  <div class="btn-group">
+                    <button
+                      type="submit"
+                      name="status"
+                      value="AVAILABLE"
+                      class="btn btn-success"
+                    >
+                      <i class="fas fa-check"></i> Bật tất cả đã chọn
+                    </button>
+                    <button
+                      type="submit"
+                      name="status"
+                      value="UNAVAILABLE"
+                      class="btn btn-danger"
+                    >
+                      <i class="fas fa-ban"></i> Tắt tất cả đã chọn
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Danh sách món ăn -->
+              <div class="table-responsive mt-3">
+                <table class="table table-hover">
+                  <thead>
+                    <tr>
+                      <th width="40px">
+                        <input
+                          class="form-check-input"
+                          type="checkbox"
+                          onclick="toggleSelectAll(this)"
+                        />
+                      </th>
+                      <th>ID</th>
+                      <th>Tên món</th>
+                      <th>Danh mục</th>
+                      <th>Giá</th>
+                      <th>Trạng thái</th>
+                      <th>Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr th:each="item : ${menuItems}">
+                      <td>
+                        <input
+                          class="form-check-input item-checkbox"
+                          type="checkbox"
+                          name="selectedItems"
+                          th:value="${item.id}"
+                        />
+                      </td>
+                      <td th:text="${item.id}">1</td>
+                      <td th:text="${item.name}">Món ăn</td>
+                      <td th:text="${#strings.capitalize(item.category)}">
+                        Danh mục
+                      </td>
+                      <td
+                        th:text="${#numbers.formatDecimal(item.price, 0, 'COMMA', 0, 'POINT') + ' VND'}"
+                      >
+                        100,000 VND
+                      </td>
+                      <td>
+                        <span
+                          th:if="${item.status.name() == 'AVAILABLE'}"
+                          class="badge bg-success"
+                          >Có sẵn</span
+                        >
+                        <span
+                          th:if="${item.status.name() == 'UNAVAILABLE'}"
+                          class="badge bg-danger"
+                          >Không có sẵn</span
+                        >
+                      </td>
+                      <td>
+                        <div class="btn-group" role="group">
+                          <button
+                            type="button"
+                            class="btn btn-sm btn-outline-primary edit-menu-item"
+                            title="Chỉnh sửa"
+                            th:data-id="${item.id}"
+                            th:data-name="${item.name}"
+                            th:data-price="${item.price}"
+                            th:data-category="${item.category}"
+                            th:data-image-url="${item.imageUrl}"
+                          >
+                            <i class="fas fa-edit"></i>
+                          </button>
+
+                          <form
+                            th:if="${item.status.name() == 'AVAILABLE'}"
+                            th:action="@{/admin/menu-management/{id}/toggle-status(id=${item.id})}"
+                            method="post"
+                            style="display: inline"
+                          >
+                            <input
+                              type="hidden"
+                              name="status"
+                              value="UNAVAILABLE"
+                            />
+                            <button
+                              type="submit"
+                              class="btn btn-sm btn-outline-danger"
+                              title="Tắt món"
+                            >
+                              <i class="fas fa-ban"></i>
+                            </button>
+                          </form>
+
+                          <form
+                            th:if="${item.status.name() == 'UNAVAILABLE'}"
+                            th:action="@{/admin/menu-management/{id}/toggle-status(id=${item.id})}"
+                            method="post"
+                            style="display: inline"
+                          >
+                            <input
+                              type="hidden"
+                              name="status"
+                              value="AVAILABLE"
+                            />
+                            <button
+                              type="submit"
+                              class="btn btn-sm btn-outline-success"
+                              title="Bật món"
+                            >
+                              <i class="fas fa-check"></i>
+                            </button>
+                          </form>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </form>
+
+            <!-- Không có dữ liệu -->
+            <div th:if="${menuItems.empty}" class="text-center py-5">
+              <i class="fas fa-utensils fa-3x text-muted mb-3"></i>
+              <h4>Không có món ăn nào</h4>
+              <p class="text-muted">
+                Hãy thêm món ăn mới để hiển thị trên menu.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Edit Menu Item -->
+      <div
+        class="modal fade"
+        id="menuEditModal"
+        tabindex="-1"
+        aria-labelledby="menuEditModalLabel"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="menuEditModalLabel">
+                Chỉnh sửa món ăn
+              </h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <form
+                id="menuEditForm"
+                th:action="@{/admin/menu-management/edit/0}"
+                method="post"
+              >
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label for="name" class="form-label">Tên món</label>
+                      <input
+                        type="text"
+                        class="form-control"
+                        id="name"
+                        name="name"
+                        required
+                      />
+                    </div>
+
+                    <div class="mb-3">
+                      <label for="price" class="form-label">Giá (VND)</label>
+                      <input
+                        type="number"
+                        class="form-control"
+                        id="price"
+                        name="price"
+                        min="0"
+                        step="1000"
+                        required
+                      />
+                    </div>
+
+                    <div class="mb-3">
+                      <label for="category" class="form-label">Danh mục</label>
+                      <select
+                        class="form-select"
+                        id="category"
+                        name="category"
+                        required
+                      >
+                        <option value="">Chọn danh mục</option>
+                        <option value="main">Món chính</option>
+                        <option value="appetizer">Khai vị</option>
+                        <option value="dessert">Tráng miệng</option>
+                        <option value="beverage">Đồ uống</option>
+                      </select>
+                    </div>
+
+                    <div class="mb-3">
+                      <label for="imageUrl" class="form-label"
+                        >URL hình ảnh</label
+                      >
+                      <input
+                        type="text"
+                        class="form-control"
+                        id="imageUrl"
+                        name="imageUrl"
+                        required
+                      />
+                      <div class="form-text">
+                        Nhập URL hình ảnh từ internet (ví dụ:
+                        https://example.com/image.jpg)
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label class="form-label">Xem trước hình ảnh</label>
+                      <div class="border rounded p-2 text-center">
+                        <img
+                          id="imagePreview"
+                          class="img-fluid"
+                          style="max-height: 300px; object-fit: contain"
+                          alt="Hình ảnh món ăn"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button
+                    type="button"
+                    class="btn btn-secondary"
+                    data-bs-dismiss="modal"
+                  >
+                    Hủy
+                  </button>
+                  <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Lưu thay đổi
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        // Xử lý chọn tất cả
+        const selectAllCheckbox = document.getElementById("selectAll");
+        const itemCheckboxes = document.querySelectorAll(".item-checkbox");
+
+        selectAllCheckbox.addEventListener("change", function () {
+          const isChecked = this.checked;
+
+          itemCheckboxes.forEach((checkbox) => {
+            checkbox.checked = isChecked;
+          });
+        });
+
+        // Cập nhật trạng thái "Chọn tất cả" khi các checkbox riêng lẻ thay đổi
+        itemCheckboxes.forEach((checkbox) => {
+          checkbox.addEventListener("change", function () {
+            const allChecked = Array.from(itemCheckboxes).every(
+              (cb) => cb.checked
+            );
+            const anyChecked = Array.from(itemCheckboxes).some(
+              (cb) => cb.checked
+            );
+
+            selectAllCheckbox.checked = allChecked;
+            selectAllCheckbox.indeterminate = anyChecked && !allChecked;
+          });
+        });
+      });
+    </script>
+  </body>
+</html>

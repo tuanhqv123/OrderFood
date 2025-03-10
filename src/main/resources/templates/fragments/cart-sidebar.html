@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <body>
+    <div th:fragment="cart-content">
+      <div class="cart-items">
+        <div
+          th:if="${cart != null && cart.items.empty}"
+          class="text-center py-3"
+          id="emptyCartMessage"
+        >
+          <i class="fas fa-shopping-basket fa-2x text-muted mb-2"></i>
+          <p class="text-muted">Giỏ hàng trống</p>
+        </div>
+
+        <div th:if="${cart != null && !cart.items.empty}" id="cartItemsList">
+          <div
+            th:each="item : ${cart.items}"
+            class="cart-item mb-3"
+            th:attr="data-item-id=${item.menuItem.id}"
+          >
+            <img
+              th:src="${item.menuItem.imageUrl}"
+              class="cart-item-image"
+              alt="Food Image"
+            />
+            <div class="cart-item-details">
+              <h6 class="cart-item-name" th:text="${item.menuItem.name}">
+                Item Name
+              </h6>
+              <div
+                class="cart-item-price"
+                th:text="${#numbers.formatDecimal(item.menuItem.price, 0, 'COMMA', 0, 'POINT')} + ' VND'"
+              >
+                Price
+              </div>
+            </div>
+            <div class="cart-item-actions">
+              <div class="quantity-control">
+                <button
+                  type="button"
+                  class="btn decrease"
+                  th:onclick="updateQuantity(this, -1)"
+                >
+                  <i class="fas fa-minus"></i>
+                </button>
+                <input
+                  type="number"
+                  class="form-control text-center item-quantity"
+                  th:value="${item.quantity}"
+                  min="1"
+                  max="10"
+                  th:attr="data-item-id=${item.menuItem.id}"
+                  th:onchange="validateQuantity(this)"
+                  readonly
+                />
+                <button
+                  type="button"
+                  class="btn increase"
+                  th:onclick="updateQuantity(this, 1)"
+                >
+                  <i class="fas fa-plus"></i>
+                </button>
+              </div>
+              <button
+                class="btn btn-sm remove-item-btn"
+                th:attr="data-item-id=${item.menuItem.id}, data-table-id=${tableId}"
+              >
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <hr th:if="${cart != null && !cart.items.empty}" />
+
+      <div class="cart-summary" th:if="${cart != null && !cart.items.empty}">
+        <div class="d-flex justify-content-between mb-2">
+          <span class="total-label">Tổng cộng:</span>
+          <span
+            class="total-amount"
+            id="cartTotal"
+            th:text="${#numbers.formatDecimal(cart.total, 0, 'COMMA', 0, 'POINT')} + ' VND'"
+            >0 VND</span
+          >
+        </div>
+
+        <div class="d-grid gap-2">
+          <button
+            type="button"
+            class="btn place-order-btn"
+            th:attr="data-table-id=${tableId}"
+          >
+            <i class="fas fa-utensils"></i> Đặt món
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-payment payment-btn"
+            th:attr="data-table-id=${tableId}"
+          >
+            <i class="fas fa-credit-card"></i> Thanh toán
+          </button>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
