@@ -1,6 +1,7 @@
 package com.restaurant.orderfood.service;
 
 import com.restaurant.orderfood.model.MenuItem;
+import com.restaurant.orderfood.model.MenuItemStatus;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -11,21 +12,22 @@ public interface MenuItemService {
 
     List<MenuItem> getAllMenuItems();
 
-    List<MenuItem> getMenuItemsByCategory(String category);
+    List<MenuItem> getMenuItemsByCategoryId(Integer categoryId);
 
-    List<MenuItem> getMenuItemsByStatus(MenuItem.MenuItemStatus status);
+    List<MenuItem> getMenuItemsByStatus(MenuItemStatus status);
 
-    List<MenuItem> getMenuItemsByCategoryAndStatus(String category, MenuItem.MenuItemStatus status);
+    List<MenuItem> getMenuItemsByCategoryIdAndStatus(Integer categoryId, MenuItemStatus status);
 
-    MenuItem createMenuItem(String name, BigDecimal price, String category);
+    MenuItem createMenuItem(String name, String description, BigDecimal price, Integer categoryId);
 
-    MenuItem createMenuItem(String name, BigDecimal price, String category, String imageUrl);
+    MenuItem createMenuItem(String name, String description, BigDecimal price, Integer categoryId, String imageUrl);
 
-    MenuItem updateMenuItem(Integer id, String name, BigDecimal price, String category);
+    MenuItem updateMenuItem(Integer id, String name, String description, BigDecimal price, Integer categoryId);
 
-    MenuItem updateMenuItem(Integer id, String name, BigDecimal price, String category, String imageUrl);
+    MenuItem updateMenuItem(Integer id, String name, String description, BigDecimal price, Integer categoryId,
+            String imageUrl);
 
-    MenuItem updateMenuItemStatus(Integer id, MenuItem.MenuItemStatus status);
+    MenuItem updateMenuItemStatus(Integer id, MenuItemStatus status);
 
     void deleteMenuItem(Integer id);
 }

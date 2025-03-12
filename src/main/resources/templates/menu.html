@@ -31,37 +31,17 @@
                 <a
                   th:href="@{/menu(table=${tableId})}"
                   class="category-pill"
-                  th:classappend="${category == null ? 'active' : ''}"
+                  th:classappend="${selectedCategoryId == null ? 'active' : ''}"
                 >
                   Tất cả món
                 </a>
                 <a
-                  th:href="@{/menu/category/appetizer(table=${tableId})}"
+                  th:each="category : ${categories}"
+                  th:href="@{/menu/category/{id}(id=${category.id}, table=${tableId})}"
                   class="category-pill"
-                  th:classappend="${category == 'appetizer' ? 'active' : ''}"
+                  th:classappend="${selectedCategoryId != null && selectedCategoryId == category.id ? 'active' : ''}"
+                  th:text="${category.name}"
                 >
-                  Khai vị
-                </a>
-                <a
-                  th:href="@{/menu/category/main(table=${tableId})}"
-                  class="category-pill"
-                  th:classappend="${category == 'main' ? 'active' : ''}"
-                >
-                  Món chính
-                </a>
-                <a
-                  th:href="@{/menu/category/dessert(table=${tableId})}"
-                  class="category-pill"
-                  th:classappend="${category == 'dessert' ? 'active' : ''}"
-                >
-                  Tráng miệng
-                </a>
-                <a
-                  th:href="@{/menu/category/beverage(table=${tableId})}"
-                  class="category-pill"
-                  th:classappend="${category == 'beverage' ? 'active' : ''}"
-                >
-                  Đồ uống
                 </a>
               </div>
             </div>
@@ -137,7 +117,7 @@
                       </h5>
                       <div
                         class="menu-item-category"
-                        th:text="${item.category}"
+                        th:text="${item.category != null ? item.category.name : ''}"
                       >
                         Category
                       </div>
@@ -517,14 +497,7 @@
           const container = button.closest(".quantity-control");
           const input = container.querySelector(".item-quantity");
           const currentValue = parseInt(input.value) || 1;
-
-          // Tính toán giá trị mới
-          const newValue = Math.max(
-            1,
-            Math.min(10, currentValue + (change > 0 ? 1 : -1))
-          );
-
-          // Cập nhật UI
+          const newValue = Math.max(1, Math.min(10, currentValue + change));
           input.value = newValue;
 
           // Nếu đang trong cart sidebar thì update cart
@@ -537,42 +510,30 @@
 
         // Gọi API cập nhật số lượng trong cart
         updateCartItem: function (itemId, tableId, quantity) {
-          console.log("Updating cart item:", { itemId, tableId, quantity });
-
-          fetch(
-            `/api/cart/update-quantity?menuItemId=${itemId}&quantity=${quantity}&tableId=${tableId}`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-            }
-          )
-            .then((response) => response.json())
+          fetch("/api/cart/update", {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              menuItemId: itemId,
+              tableId: tableId,
+              quantity: quantity,
+            }),
+          })
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+              }
+              return response.json();
+            })
             .then((data) => {
-              console.log("Update cart response:", data);
               if (data.success) {
                 this.refreshCartSidebar(tableId);
               }
             })
             .catch((error) => {
               console.error("Error updating cart:", error);
-            });
-        },
-
-        // Refresh cart sidebar từ server
-        refreshCartSidebar: function (tableId) {
-          console.log("Refreshing cart sidebar for table:", tableId);
-
-          fetch(`/cart/sidebar?tableId=${tableId}`)
-            .then((response) => response.text())
-            .then((html) => {
-              const sidebar = document.getElementById("cartSidebar");
-              sidebar.innerHTML = html;
-              this.attachCartEvents(sidebar);
-            })
-            .catch((error) => {
-              console.error("Error refreshing cart:", error);
             });
         },
 
@@ -591,6 +552,60 @@
           if (menuItemQuantityInput) {
             menuItemQuantityInput.value = 1;
           }
+        },
+
+        // Thêm item vào cart
+        addToCart: function (button) {
+          const itemId = button.getAttribute("data-item-id");
+          const tableId = button.getAttribute("data-table-id");
+          const quantityInput = button
+            .closest(".product-actions")
+            .querySelector(".item-quantity");
+          const quantity = parseInt(quantityInput.value) || 1;
+
+          fetch("/api/cart/add", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              menuItemId: itemId,
+              tableId: tableId,
+              quantity: quantity,
+            }),
+          })
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+              }
+              return response.json();
+            })
+            .then((data) => {
+              if (data.success) {
+                // Reset quantity về 1 sau khi thêm thành công
+                this.resetMenuItemQuantity(itemId);
+                this.refreshCartSidebar(tableId);
+              }
+            })
+            .catch((error) => {
+              console.error("Error adding to cart:", error);
+            });
+        },
+
+        // Refresh cart sidebar từ server
+        refreshCartSidebar: function (tableId) {
+          fetch(`/cart/sidebar?tableId=${tableId}`)
+            .then((response) => response.text())
+            .then((html) => {
+              const sidebar = document.getElementById("cartSidebar");
+              if (sidebar) {
+                sidebar.innerHTML = html;
+                this.attachCartEvents(sidebar);
+              }
+            })
+            .catch((error) => {
+              console.error("Error refreshing cart:", error);
+            });
         },
 
         // Gắn các event handlers cho cart sidebar
@@ -619,20 +634,23 @@
 
         // Xóa item khỏi cart
         removeFromCart: function (itemId, tableId) {
-          console.log("Removing from cart:", { itemId, tableId });
-
-          fetch(
-            `/api/cart/remove-item?menuItemId=${itemId}&tableId=${tableId}`,
-            {
-              method: "DELETE",
-              headers: {
-                "Content-Type": "application/json",
-              },
-            }
-          )
-            .then((response) => response.json())
+          fetch("/api/cart/remove", {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              menuItemId: itemId,
+              tableId: tableId,
+            }),
+          })
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+              }
+              return response.json();
+            })
             .then((data) => {
-              console.log("Remove item response:", data);
               if (data.success) {
                 this.resetMenuItemQuantity(itemId);
                 this.refreshCartSidebar(tableId);
@@ -642,50 +660,14 @@
               console.error("Error removing item:", error);
             });
         },
-
-        // Thêm item vào cart
-        addToCart: function (button) {
-          const itemId = button.getAttribute("data-item-id");
-          const tableId = button.getAttribute("data-table-id");
-          const quantityInput = button
-            .closest(".product-actions")
-            .querySelector(".item-quantity");
-          const quantity = parseInt(quantityInput.value) || 1;
-
-          console.log("Adding to cart:", { itemId, tableId, quantity });
-
-          fetch(
-            `/api/cart/add-item?menuItemId=${itemId}&quantity=${quantity}&tableId=${tableId}`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-            }
-          )
-            .then((response) => response.json())
-            .then((data) => {
-              console.log("Add to cart response:", data);
-              if (data.success) {
-                // Reset quantity về 1 sau khi thêm thành công
-                this.resetMenuItemQuantity(itemId);
-                this.refreshCartSidebar(tableId);
-              }
-            })
-            .catch((error) => {
-              console.error("Error adding to cart:", error);
-            });
-        },
       };
 
       // Khởi tạo khi trang load
       document.addEventListener("DOMContentLoaded", function () {
         const tableId = /*[[${tableId}]]*/ null;
 
-        console.log("Initializing page for table:", tableId);
-
+        // Load cart sidebar
         if (tableId) {
-          // Load cart sidebar
           window.appHandlers.refreshCartSidebar(tableId);
         }
 
@@ -707,6 +689,14 @@
             window.appHandlers.addToCart(button);
           };
         });
+
+        // Hiển thị menu content sau khi load xong
+        const menuContent = document.getElementById("menuContent");
+        const skeletonLoader = document.querySelector(".skeleton-loader");
+        if (menuContent && skeletonLoader) {
+          skeletonLoader.style.display = "none";
+          menuContent.classList.remove("d-none");
+        }
       });
     </script>
   </body>

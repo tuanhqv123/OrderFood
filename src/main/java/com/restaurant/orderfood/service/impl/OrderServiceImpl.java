@@ -52,7 +52,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public List<RestaurantOrder> getOrdersByStatus(RestaurantOrder.OrderStatus status) {
+    public List<RestaurantOrder> getOrdersByStatus(OrderStatus status) {
         return orderRepository.findByStatus(status);
     }
 
@@ -62,13 +62,13 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public List<RestaurantOrder> getOrdersByTableAndStatus(RestaurantTable table, RestaurantOrder.OrderStatus status) {
+    public List<RestaurantOrder> getOrdersByTableAndStatus(RestaurantTable table, OrderStatus status) {
         return orderRepository.findByTableAndStatus(table, status);
     }
 
     @Override
     public Optional<RestaurantOrder> getActiveOrderByTable(RestaurantTable table) {
-        return orderRepository.findByTableAndStatusNot(table, RestaurantOrder.OrderStatus.COMPLETED);
+        return orderRepository.findByTableAndStatusNot(table, OrderStatus.COMPLETED);
     }
 
     @Override
@@ -178,7 +178,7 @@ public class OrderServiceImpl implements OrderService {
         RestaurantOrder order = new RestaurantOrder();
         order.setTable(table);
         order.setCustomer(customer);
-        order.setStatus(RestaurantOrder.OrderStatus.PENDING);
+        order.setStatus(OrderStatus.PENDING);
         order.setTotalAmount(cart.getTotal());
 
         // Calculate points (10% of total)
@@ -213,12 +213,12 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
-    public RestaurantOrder updateOrderStatus(Integer id, RestaurantOrder.OrderStatus status) {
+    public RestaurantOrder updateOrderStatus(Integer id, OrderStatus status) {
         RestaurantOrder order = getOrderById(id);
         order.setStatus(status);
 
         // If order is completed, update customer points and free up the table
-        if (status == RestaurantOrder.OrderStatus.COMPLETED && order.getCustomer() != null) {
+        if (status == OrderStatus.COMPLETED && order.getCustomer() != null) {
             customerService.updateCustomerPoints(order.getCustomer().getId(), order.getPointsEarned());
             tableService.updateTableStatus(order.getTable().getId(), RestaurantTable.TableStatus.AVAILABLE);
         }
@@ -232,11 +232,11 @@ public class OrderServiceImpl implements OrderService {
         RestaurantOrder order = getOrderById(id);
 
         // Only pending orders can be cancelled
-        if (order.getStatus() != RestaurantOrder.OrderStatus.PENDING) {
+        if (order.getStatus() != OrderStatus.PENDING) {
             throw new IllegalStateException("Only pending orders can be cancelled");
         }
 
-        order.setStatus(RestaurantOrder.OrderStatus.CANCELLED);
+        order.setStatus(OrderStatus.CANCELLED);
         orderRepository.save(order);
 
         // Free up the table

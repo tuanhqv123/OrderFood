@@ -16,9 +16,15 @@ public class CartController {
 
     private final CartService cartService;
 
-    @PostMapping("/add")
+    @GetMapping("/{tableId}")
+    public ResponseEntity<CartDto> getCart(@PathVariable Integer tableId) {
+        CartDto cart = cartService.getCart(tableId);
+        return ResponseEntity.ok(cart);
+    }
+
+    @PostMapping("/{tableId}/add")
     public ResponseEntity<Map<String, Object>> addToCart(
-            @RequestParam Integer tableId,
+            @PathVariable Integer tableId,
             @RequestParam Integer menuItemId,
             @RequestParam Integer quantity) {
 
@@ -37,18 +43,18 @@ public class CartController {
         }
     }
 
-    @PostMapping("/update")
+    @PostMapping("/{tableId}/update")
     public ResponseEntity<Map<String, Object>> updateCartItem(
-            @RequestParam Integer tableId,
+            @PathVariable Integer tableId,
             @RequestParam Integer menuItemId,
             @RequestParam Integer quantity) {
 
         Map<String, Object> response = new HashMap<>();
 
         try {
-            CartDto cart = cartService.updateCartItem(tableId, menuItemId, quantity);
+            CartDto cart = cartService.updateItemQuantity(tableId, menuItemId, quantity);
             response.put("success", true);
-            response.put("message", "Đã cập nhật giỏ hàng");
+            response.put("message", "Đã cập nhật số lượng");
             response.put("cart", cart);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
@@ -58,9 +64,9 @@ public class CartController {
         }
     }
 
-    @PostMapping("/remove")
+    @PostMapping("/{tableId}/remove")
     public ResponseEntity<Map<String, Object>> removeFromCart(
-            @RequestParam Integer tableId,
+            @PathVariable Integer tableId,
             @RequestParam Integer menuItemId) {
 
         Map<String, Object> response = new HashMap<>();
@@ -78,9 +84,9 @@ public class CartController {
         }
     }
 
-    @PostMapping("/clear")
+    @PostMapping("/{tableId}/clear")
     public ResponseEntity<Map<String, Object>> clearCart(
-            @RequestParam Integer tableId) {
+            @PathVariable Integer tableId) {
 
         Map<String, Object> response = new HashMap<>();
 
@@ -96,11 +102,5 @@ public class CartController {
             response.put("message", e.getMessage());
             return ResponseEntity.badRequest().body(response);
         }
-    }
-
-    @GetMapping("/{tableId}")
-    public ResponseEntity<CartDto> getCart(@PathVariable Integer tableId) {
-        CartDto cart = cartService.getCart(tableId);
-        return ResponseEntity.ok(cart);
     }
 }

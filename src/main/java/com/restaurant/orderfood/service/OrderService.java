@@ -2,6 +2,7 @@ package com.restaurant.orderfood.service;
 
 import com.restaurant.orderfood.dto.CartDto;
 import com.restaurant.orderfood.dto.OrderDto;
+import com.restaurant.orderfood.model.OrderStatus;
 import com.restaurant.orderfood.model.RestaurantOrder;
 import com.restaurant.orderfood.model.RestaurantTable;
 
@@ -14,11 +15,11 @@ public interface OrderService {
 
     List<RestaurantOrder> getAllOrders();
 
-    List<RestaurantOrder> getOrdersByStatus(RestaurantOrder.OrderStatus status);
+    List<RestaurantOrder> getOrdersByStatus(OrderStatus status);
 
     List<RestaurantOrder> getOrdersByTable(RestaurantTable table);
 
-    List<RestaurantOrder> getOrdersByTableAndStatus(RestaurantTable table, RestaurantOrder.OrderStatus status);
+    List<RestaurantOrder> getOrdersByTableAndStatus(RestaurantTable table, OrderStatus status);
 
     Optional<RestaurantOrder> getActiveOrderByTable(RestaurantTable table);
 
@@ -30,7 +31,7 @@ public interface OrderService {
 
     CartDto getCartForTable(Integer tableId);
 
-    RestaurantOrder updateOrderStatus(Integer id, RestaurantOrder.OrderStatus status);
+    RestaurantOrder updateOrderStatus(Integer id, OrderStatus status);
 
     void cancelOrder(Integer id);
 }

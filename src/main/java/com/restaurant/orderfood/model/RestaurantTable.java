@@ -2,14 +2,14 @@ package com.restaurant.orderfood.model;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
+import lombok.Setter;
 
 @Entity
 @Table(name = "restaurant_table")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class RestaurantTable {
@@ -18,12 +18,15 @@ public class RestaurantTable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    @Column(name = "table_number", nullable = false, unique = true)
+    private Integer tableNumber;
+
+    @Column(name = "capacity", nullable = false)
+    private Integer capacity;
+
     @Column(name = "status", nullable = false)
     @Enumerated(EnumType.STRING)
     private TableStatus status = TableStatus.AVAILABLE;
-
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
 
     public enum TableStatus {
         AVAILABLE, OCCUPIED

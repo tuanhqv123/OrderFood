@@ -58,38 +58,20 @@
               class="row g-3"
             >
               <div class="col-md-4">
-                <label for="category" class="form-label">Danh mục</label>
+                <label for="categoryId" class="form-label">Danh mục</label>
                 <select
-                  id="category"
-                  name="category"
+                  id="categoryId"
+                  name="categoryId"
                   class="form-select"
-                  th:with="cat=${param.category}"
+                  th:with="cat=${param.categoryId}"
                 >
                   <option value="">Tất cả danh mục</option>
                   <option
-                    value="main"
-                    th:selected="${cat != null && cat[0] == 'main'}"
-                  >
-                    Món chính
-                  </option>
-                  <option
-                    value="appetizer"
-                    th:selected="${cat != null && cat[0] == 'appetizer'}"
-                  >
-                    Khai vị
-                  </option>
-                  <option
-                    value="dessert"
-                    th:selected="${cat != null && cat[0] == 'dessert'}"
-                  >
-                    Tráng miệng
-                  </option>
-                  <option
-                    value="beverage"
-                    th:selected="${cat != null && cat[0] == 'beverage'}"
-                  >
-                    Đồ uống
-                  </option>
+                    th:each="category : ${categories}"
+                    th:value="${category.id}"
+                    th:text="${category.name}"
+                    th:selected="${cat != null && cat[0] == category.id}"
+                  ></option>
                 </select>
               </div>
               <div class="col-md-4">
@@ -199,7 +181,9 @@
                       </td>
                       <td th:text="${item.id}">1</td>
                       <td th:text="${item.name}">Món ăn</td>
-                      <td th:text="${#strings.capitalize(item.category)}">
+                      <td
+                        th:text="${item.category != null ? item.category.name : ''}"
+                      >
                         Danh mục
                       </td>
                       <td

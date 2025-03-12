@@ -1,6 +1,5 @@
 package com.restaurant.orderfood.dto;
 
-import com.restaurant.orderfood.model.MenuItem;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -16,5 +15,8 @@ public class CartItemDto {
     private BigDecimal price;
     private Integer quantity;
     private BigDecimal subtotal;
-    private MenuItem menuItem;
+
+    public void calculateSubtotal() {
+        this.subtotal = this.price.multiply(BigDecimal.valueOf(this.quantity));
+    }
 }

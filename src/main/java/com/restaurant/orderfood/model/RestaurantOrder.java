@@ -2,8 +2,9 @@ package com.restaurant.orderfood.model;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -12,7 +13,8 @@ import java.util.List;
 
 @Entity
 @Table(name = "restaurant_order")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class RestaurantOrder {
@@ -47,8 +49,4 @@ public class RestaurantOrder {
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> orderItems = new ArrayList<>();
-
-    public enum OrderStatus {
-        PENDING, PREPARING, READY, COMPLETED, CANCELLED
-    }
 }

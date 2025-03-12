@@ -1,6 +1,8 @@
 package com.restaurant.orderfood.controller;
 
 import com.restaurant.orderfood.model.MenuItem;
+import com.restaurant.orderfood.model.MenuItemStatus;
+import com.restaurant.orderfood.service.MenuCategoryService;
 import com.restaurant.orderfood.service.MenuItemService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -17,27 +19,29 @@ import java.util.List;
 public class AdminMenuController {
 
     private final MenuItemService menuItemService;
+    private final MenuCategoryService menuCategoryService;
 
     @GetMapping
     public String showMenuManagement(
-            @RequestParam(required = false) String category,
+            @RequestParam(required = false) Integer categoryId,
             @RequestParam(required = false) String status,
             Model model) {
 
         List<MenuItem> menuItems;
 
-        if (category != null && !category.isEmpty() && status != null && !status.isEmpty()) {
-            menuItems = menuItemService.getMenuItemsByCategoryAndStatus(
-                    category, MenuItem.MenuItemStatus.valueOf(status));
-        } else if (category != null && !category.isEmpty()) {
-            menuItems = menuItemService.getMenuItemsByCategory(category);
+        if (categoryId != null && status != null && !status.isEmpty()) {
+            menuItems = menuItemService.getMenuItemsByCategoryIdAndStatus(
+                    categoryId, MenuItemStatus.valueOf(status));
+        } else if (categoryId != null) {
+            menuItems = menuItemService.getMenuItemsByCategoryId(categoryId);
         } else if (status != null && !status.isEmpty()) {
-            menuItems = menuItemService.getMenuItemsByStatus(MenuItem.MenuItemStatus.valueOf(status));
+            menuItems = menuItemService.getMenuItemsByStatus(MenuItemStatus.valueOf(status));
         } else {
             menuItems = menuItemService.getAllMenuItems();
         }
 
         model.addAttribute("menuItems", menuItems);
+        model.addAttribute("categories", menuCategoryService.getAllCategories());
         model.addAttribute("isAdminPage", true);
         return "admin/menu-management";
     }
@@ -45,16 +49,30 @@ public class AdminMenuController {
     @GetMapping("/add")
     public String showAddForm(Model model) {
         model.addAttribute("menuItem", new MenuItem());
+        model.addAttribute("categories", menuCategoryService.getAllCategories());
         model.addAttribute("isAdminPage", true);
         return "admin/menu-add";
+    }
+
+    @GetMapping("/edit/{id}")
+    public String showEditForm(@PathVariable Integer id, Model model) {
+        MenuItem menuItem = menuItemService.getMenuItemById(id);
+        if (menuItem == null) {
+            return "redirect:/admin/menu-management";
+        }
+        model.addAttribute("menuItem", menuItem);
+        model.addAttribute("categories", menuCategoryService.getAllCategories());
+        model.addAttribute("isAdminPage", true);
+        return "admin/menu-edit";
     }
 
     @PostMapping("/edit/{id}")
     public String updateMenuItem(
             @PathVariable Integer id,
             @RequestParam String name,
+            @RequestParam String description,
             @RequestParam BigDecimal price,
-            @RequestParam String category,
+            @RequestParam Integer categoryId,
             @RequestParam String imageUrl,
             RedirectAttributes redirectAttributes) {
 
@@ -66,12 +84,7 @@ public class AdminMenuController {
                 return "redirect:/admin/menu-management";
             }
 
-            menuItem.setName(name);
-            menuItem.setPrice(price);
-            menuItem.setCategory(category);
-            menuItem.setImageUrl(imageUrl);
-
-            menuItemService.updateMenuItem(id, name, price, category, imageUrl);
+            menuItemService.updateMenuItem(id, name, description, price, categoryId, imageUrl);
             redirectAttributes.addFlashAttribute("success", "Cập nhật món ăn thành công");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", "Lỗi khi cập nhật món ăn: " + e.getMessage());
@@ -94,10 +107,10 @@ public class AdminMenuController {
                 return "redirect:/admin/menu-management";
             }
 
-            MenuItem.MenuItemStatus newStatus = MenuItem.MenuItemStatus.valueOf(status);
+            MenuItemStatus newStatus = MenuItemStatus.valueOf(status);
             menuItemService.updateMenuItemStatus(id, newStatus);
 
-            String statusMessage = newStatus == MenuItem.MenuItemStatus.AVAILABLE ? "bật" : "tắt";
+            String statusMessage = newStatus == MenuItemStatus.AVAILABLE ? "bật" : "tắt";
             redirectAttributes.addFlashAttribute("success", "Đã " + statusMessage + " món ăn thành công");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", "Lỗi khi cập nhật trạng thái: " + e.getMessage());
@@ -118,7 +131,7 @@ public class AdminMenuController {
         }
 
         try {
-            MenuItem.MenuItemStatus newStatus = MenuItem.MenuItemStatus.valueOf(status);
+            MenuItemStatus newStatus = MenuItemStatus.valueOf(status);
             int count = 0;
 
             for (Integer id : selectedItems) {
@@ -126,7 +139,7 @@ public class AdminMenuController {
                 count++;
             }
 
-            String statusMessage = newStatus == MenuItem.MenuItemStatus.AVAILABLE ? "bật" : "tắt";
+            String statusMessage = newStatus == MenuItemStatus.AVAILABLE ? "bật" : "tắt";
             redirectAttributes.addFlashAttribute("success", "Đã " + statusMessage + " " + count + " món ăn thành công");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", "Lỗi khi cập nhật trạng thái: " + e.getMessage());

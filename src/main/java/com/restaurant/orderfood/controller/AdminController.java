@@ -1,6 +1,7 @@
 package com.restaurant.orderfood.controller;
 
 import com.restaurant.orderfood.model.MenuItem;
+import com.restaurant.orderfood.model.OrderStatus;
 import com.restaurant.orderfood.model.RestaurantOrder;
 import com.restaurant.orderfood.model.RestaurantTable;
 import com.restaurant.orderfood.service.MenuService;
@@ -31,9 +32,9 @@ public class AdminController {
     @GetMapping
     public String adminDashboard(Model model) {
         List<RestaurantTable> tables = tableService.getAllTables();
-        List<RestaurantOrder> pendingOrders = orderService.getOrdersByStatus(RestaurantOrder.OrderStatus.PENDING);
-        List<RestaurantOrder> preparingOrders = orderService.getOrdersByStatus(RestaurantOrder.OrderStatus.PREPARING);
-        List<RestaurantOrder> readyOrders = orderService.getOrdersByStatus(RestaurantOrder.OrderStatus.READY);
+        List<RestaurantOrder> pendingOrders = orderService.getOrdersByStatus(OrderStatus.PENDING);
+        List<RestaurantOrder> preparingOrders = orderService.getOrdersByStatus(OrderStatus.PREPARING);
+        List<RestaurantOrder> readyOrders = orderService.getOrdersByStatus(OrderStatus.READY);
 
         model.addAttribute("tables", tables);
         model.addAttribute("pendingOrders", pendingOrders);
@@ -83,7 +84,7 @@ public class AdminController {
 
     @GetMapping("/orders/filter")
     public String filterOrders(
-            @RequestParam(required = false) RestaurantOrder.OrderStatus status,
+            @RequestParam(required = false) OrderStatus status,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             Model model) {
 
@@ -123,7 +124,7 @@ public class AdminController {
     @PostMapping("/orders/update-status/{id}")
     public String updateOrderStatus(
             @PathVariable Integer id,
-            @RequestParam RestaurantOrder.OrderStatus status,
+            @RequestParam OrderStatus status,
             RedirectAttributes redirectAttributes) {
 
         try {

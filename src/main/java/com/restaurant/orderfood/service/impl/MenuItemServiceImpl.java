@@ -1,6 +1,9 @@
 package com.restaurant.orderfood.service.impl;
 
+import com.restaurant.orderfood.model.MenuCategory;
 import com.restaurant.orderfood.model.MenuItem;
+import com.restaurant.orderfood.model.MenuItemStatus;
+import com.restaurant.orderfood.repository.MenuCategoryRepository;
 import com.restaurant.orderfood.repository.MenuItemRepository;
 import com.restaurant.orderfood.service.MenuItemService;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +17,7 @@ import java.util.List;
 public class MenuItemServiceImpl implements MenuItemService {
 
     private final MenuItemRepository menuItemRepository;
+    private final MenuCategoryRepository menuCategoryRepository;
 
     @Override
     public MenuItem getMenuItemById(Integer id) {
@@ -26,72 +30,79 @@ public class MenuItemServiceImpl implements MenuItemService {
     }
 
     @Override
-    public List<MenuItem> getMenuItemsByCategory(String category) {
+    public List<MenuItem> getMenuItemsByCategoryId(Integer categoryId) {
+        MenuCategory category = menuCategoryRepository.findById(categoryId)
+                .orElseThrow(() -> new IllegalArgumentException("Category not found with id: " + categoryId));
         return menuItemRepository.findByCategory(category);
     }
 
     @Override
-    public List<MenuItem> getMenuItemsByStatus(MenuItem.MenuItemStatus status) {
+    public List<MenuItem> getMenuItemsByStatus(MenuItemStatus status) {
         return menuItemRepository.findByStatus(status);
     }
 
     @Override
-    public List<MenuItem> getMenuItemsByCategoryAndStatus(String category, MenuItem.MenuItemStatus status) {
+    public List<MenuItem> getMenuItemsByCategoryIdAndStatus(Integer categoryId, MenuItemStatus status) {
+        MenuCategory category = menuCategoryRepository.findById(categoryId)
+                .orElseThrow(() -> new IllegalArgumentException("Category not found with id: " + categoryId));
         return menuItemRepository.findByCategoryAndStatus(category, status);
     }
 
     @Override
-    public MenuItem createMenuItem(String name, BigDecimal price, String category) {
-        return createMenuItem(name, price, category, null);
+    public MenuItem createMenuItem(String name, String description, BigDecimal price, Integer categoryId) {
+        return createMenuItem(name, description, price, categoryId, null);
     }
 
     @Override
-    public MenuItem createMenuItem(String name, BigDecimal price, String category, String imageUrl) {
+    public MenuItem createMenuItem(String name, String description, BigDecimal price, Integer categoryId,
+            String imageUrl) {
+        MenuCategory category = menuCategoryRepository.findById(categoryId)
+                .orElseThrow(() -> new IllegalArgumentException("Category not found with id: " + categoryId));
+
         MenuItem menuItem = new MenuItem();
         menuItem.setName(name);
+        menuItem.setDescription(description);
         menuItem.setPrice(price);
         menuItem.setCategory(category);
         menuItem.setImageUrl(imageUrl);
-        menuItem.setStatus(MenuItem.MenuItemStatus.AVAILABLE);
+        menuItem.setStatus(MenuItemStatus.AVAILABLE);
 
         return menuItemRepository.save(menuItem);
     }
 
     @Override
-    public MenuItem updateMenuItem(Integer id, String name, BigDecimal price, String category) {
-        return updateMenuItem(id, name, price, category, null);
+    public MenuItem updateMenuItem(Integer id, String name, String description, BigDecimal price, Integer categoryId) {
+        return updateMenuItem(id, name, description, price, categoryId, null);
     }
 
     @Override
-    public MenuItem updateMenuItem(Integer id, String name, BigDecimal price, String category, String imageUrl) {
+    public MenuItem updateMenuItem(Integer id, String name, String description, BigDecimal price, Integer categoryId,
+            String imageUrl) {
         MenuItem menuItem = getMenuItemById(id);
+        if (menuItem != null) {
+            MenuCategory category = menuCategoryRepository.findById(categoryId)
+                    .orElseThrow(() -> new IllegalArgumentException("Category not found with id: " + categoryId));
 
-        if (menuItem == null) {
-            throw new IllegalArgumentException("Không tìm thấy món ăn với ID: " + id);
+            menuItem.setName(name);
+            menuItem.setDescription(description);
+            menuItem.setPrice(price);
+            menuItem.setCategory(category);
+            if (imageUrl != null) {
+                menuItem.setImageUrl(imageUrl);
+            }
+            return menuItemRepository.save(menuItem);
         }
-
-        menuItem.setName(name);
-        menuItem.setPrice(price);
-        menuItem.setCategory(category);
-
-        if (imageUrl != null) {
-            menuItem.setImageUrl(imageUrl);
-        }
-
-        return menuItemRepository.save(menuItem);
+        return null;
     }
 
     @Override
-    public MenuItem updateMenuItemStatus(Integer id, MenuItem.MenuItemStatus status) {
+    public MenuItem updateMenuItemStatus(Integer id, MenuItemStatus status) {
         MenuItem menuItem = getMenuItemById(id);
-
-        if (menuItem == null) {
-            throw new IllegalArgumentException("Không tìm thấy món ăn với ID: " + id);
+        if (menuItem != null) {
+            menuItem.setStatus(status);
+            return menuItemRepository.save(menuItem);
         }
-
-        menuItem.setStatus(status);
-
-        return menuItemRepository.save(menuItem);
+        return null;
     }
 
     @Override

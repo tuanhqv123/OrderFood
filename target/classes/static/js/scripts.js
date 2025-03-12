@@ -205,6 +205,8 @@ function initCartFunctionality() {
       const menuItemId = this.getAttribute("data-item-id");
       const tableId = this.getAttribute("data-table-id");
 
+      console.log("Add to cart button clicked:", { menuItemId, tableId });
+
       if (!menuItemId || !tableId) {
         console.error("Missing data attributes for add-to-cart button:", this);
         return;
@@ -217,13 +219,14 @@ function initCartFunctionality() {
           this.closest(".product-actions").querySelector(".item-quantity");
         if (quantityInput) {
           quantity = parseInt(quantityInput.value) || 1;
+          console.log("Found quantity input with value:", quantity);
         }
       } catch (error) {
         console.error("Error getting quantity:", error);
       }
 
-      console.log("Add to cart clicked:", { menuItemId, tableId, quantity });
-      addToCart(tableId, menuItemId, quantity);
+      // Use the appHandlers.addToCart method
+      window.appHandlers.addToCart(this);
     });
   });
 
@@ -286,70 +289,6 @@ function initCartFunctionality() {
       processPayment();
     });
   }
-}
-
-/**
- * Add item to cart via AJAX
- */
-function addToCart(tableId, menuItemId, quantity) {
-  if (!tableId || !menuItemId) {
-    console.error("Missing required parameters for addToCart:", {
-      tableId,
-      menuItemId,
-    });
-    return;
-  }
-
-  // Get quantity from input
-  const quantityInput = document.querySelector(
-    `.item-quantity[data-item-id="${menuItemId}"]`
-  );
-
-  if (quantityInput) {
-    quantity = parseInt(quantityInput.value) || 1;
-    quantity = Math.max(1, Math.min(quantity, 10));
-  } else {
-    quantity = 1;
-  }
-
-  console.log("Adding to cart:", { tableId, menuItemId, quantity });
-
-  const formData = new FormData();
-  formData.append("tableId", tableId);
-  formData.append("menuItemId", menuItemId);
-  formData.append("quantity", quantity);
-
-  fetch("/api/cart/add", {
-    method: "POST",
-    body: formData,
-  })
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-      return response.json();
-    })
-    .then((data) => {
-      console.log("Cart response:", data);
-      if (data.success) {
-        // Reset quantity input to 1 after successful add
-        if (quantityInput) {
-          quantityInput.value = 1;
-        }
-
-        // Update cart sidebar
-        if (data.cart) {
-          updateCartSidebar(data.cart);
-        } else {
-          console.error("Cart data missing in response:", data);
-        }
-      } else {
-        console.error("Error adding to cart:", data.message || "Unknown error");
-      }
-    })
-    .catch((error) => {
-      console.error("Error adding to cart:", error);
-    });
 }
 
 /**
@@ -882,3 +821,470 @@ function initCartButtons() {
     });
   });
 }
+
+// Update window.appHandlers
+window.appHandlers = {
+  // ... other handlers ...
+
+  addToCart: function (button) {
+    const itemId = button.getAttribute("data-item-id");
+    const tableId = button.getAttribute("data-table-id");
+    const quantityInput = button
+      .closest(".product-actions")
+      .querySelector(".item-quantity");
+    const quantity = parseInt(quantityInput.value) || 1;
+
+    fetch(
+      `/api/cart/${tableId}/add?menuItemId=${itemId}&quantity=${quantity}`,
+      {
+        method: "POST",
+      }
+    )
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then((data) => {
+        if (data.success) {
+          this.resetMenuItemQuantity(itemId);
+          this.refreshCartSidebar(tableId);
+          this.showToast("success", data.message);
+        } else {
+          this.showToast(
+            "error",
+            data.message || "Đã xảy ra lỗi khi thêm vào giỏ hàng"
+          );
+        }
+      })
+      .catch((error) => {
+        console.error("Error adding to cart:", error);
+        this.showToast("error", "Đã xảy ra lỗi khi thêm vào giỏ hàng");
+      });
+  },
+
+  removeFromCart: function (itemId, tableId) {
+    fetch(`/api/cart/${tableId}/remove?menuItemId=${itemId}`, {
+      method: "POST",
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then((data) => {
+        if (data.success) {
+          this.resetMenuItemQuantity(itemId);
+          this.refreshCartSidebar(tableId);
+          this.showToast("success", data.message);
+        } else {
+          this.showToast(
+            "error",
+            data.message || "Đã xảy ra lỗi khi xóa khỏi giỏ hàng"
+          );
+        }
+      })
+      .catch((error) => {
+        console.error("Error removing item:", error);
+        this.showToast("error", "Đã xảy ra lỗi khi xóa khỏi giỏ hàng");
+      });
+  },
+
+  updateCartItem: function (itemId, tableId, quantity) {
+    fetch(
+      `/api/cart/${tableId}/update?menuItemId=${itemId}&quantity=${quantity}`,
+      {
+        method: "POST",
+      }
+    )
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then((data) => {
+        if (data.success) {
+          this.refreshCartSidebar(tableId);
+          this.showToast("success", data.message);
+        } else {
+          this.showToast(
+            "error",
+            data.message || "Đã xảy ra lỗi khi cập nhật số lượng"
+          );
+        }
+      })
+      .catch((error) => {
+        console.error("Error updating cart:", error);
+        this.showToast("error", "Đã xảy ra lỗi khi cập nhật số lượng");
+      });
+  },
+
+  refreshCartSidebar: function (tableId) {
+    fetch(`/api/cart/${tableId}`)
+      .then((response) => response.json())
+      .then((cart) => {
+        const sidebar = document.getElementById("cartSidebar");
+        if (sidebar) {
+          // Generate cart HTML
+          let html = '<div class="cart-items">';
+
+          if (!cart.items || cart.items.length === 0) {
+            html += `
+              <div class="text-center py-3" id="emptyCartMessage">
+                <i class="fas fa-shopping-basket fa-2x text-muted mb-2"></i>
+                <p class="text-muted">Giỏ hàng trống</p>
+              </div>
+            `;
+          } else {
+            cart.items.forEach((item) => {
+              html += `
+                <div class="cart-item mb-3" data-item-id="${item.menuItemId}">
+                  <div class="cart-item-details">
+                    <h6 class="cart-item-name">${item.name}</h6>
+                    <div class="cart-item-price">${new Intl.NumberFormat(
+                      "vi-VN"
+                    ).format(item.price)} VND</div>
+                  </div>
+                  <div class="cart-item-actions">
+                    <div class="quantity-control">
+                      <button type="button" class="btn decrease" onclick="window.appHandlers.updateQuantity(this, -1)">
+                        <i class="fas fa-minus"></i>
+                      </button>
+                      <input type="number" class="form-control text-center item-quantity" 
+                        value="${item.quantity}" min="1" max="10" 
+                        data-item-id="${item.menuItemId}" 
+                        onchange="window.appHandlers.validateQuantity(this)" readonly />
+                      <button type="button" class="btn increase" onclick="window.appHandlers.updateQuantity(this, 1)">
+                        <i class="fas fa-plus"></i>
+                      </button>
+                    </div>
+                    <button class="btn btn-sm remove-item-btn" 
+                      data-item-id="${item.menuItemId}" 
+                      data-table-id="${cart.tableId}">
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </div>
+                </div>
+              `;
+            });
+
+            html += `
+              <hr />
+              <div class="cart-summary">
+                <div class="d-flex justify-content-between mb-2">
+                  <span class="total-label">Tổng cộng:</span>
+                  <span class="total-amount" id="cartTotal">
+                    ${new Intl.NumberFormat("vi-VN").format(cart.total)} VND
+                  </span>
+                </div>
+                <div class="d-grid gap-2">
+                  <button type="button" class="btn place-order-btn" data-table-id="${
+                    cart.tableId
+                  }">
+                    <i class="fas fa-utensils"></i> Đặt món
+                  </button>
+                  <button type="button" class="btn btn-payment payment-btn" data-table-id="${
+                    cart.tableId
+                  }">
+                    <i class="fas fa-credit-card"></i> Thanh toán
+                  </button>
+                </div>
+              </div>
+            `;
+          }
+
+          html += "</div>";
+          sidebar.innerHTML = html;
+          this.attachCartEvents(sidebar);
+        }
+      })
+      .catch((error) => {
+        console.error("Error refreshing cart:", error);
+      });
+  },
+
+  showToast: function (type, message) {
+    const toast = document.createElement("div");
+    toast.className = `toast align-items-center text-white bg-${
+      type === "success" ? "success" : "danger"
+    } border-0`;
+    toast.setAttribute("role", "alert");
+    toast.setAttribute("aria-live", "assertive");
+    toast.setAttribute("aria-atomic", "true");
+
+    toast.innerHTML = `
+      <div class="d-flex">
+        <div class="toast-body">
+          ${message}
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+    `;
+
+    const container = document.getElementById("toast-container");
+    if (!container) {
+      const newContainer = document.createElement("div");
+      newContainer.id = "toast-container";
+      newContainer.className =
+        "toast-container position-fixed bottom-0 end-0 p-3";
+      document.body.appendChild(newContainer);
+    }
+
+    document.getElementById("toast-container").appendChild(toast);
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+
+    toast.addEventListener("hidden.bs.toast", () => {
+      toast.remove();
+    });
+  },
+
+  resetMenuItemQuantity: function (menuItemId) {
+    console.log("Resetting quantity for menu item:", menuItemId);
+    const menuItemQuantityInput = document.querySelector(
+      `.product-actions .item-quantity[data-item-id="${menuItemId}"]`
+    );
+    if (menuItemQuantityInput) {
+      console.log("Found quantity input, resetting to 1");
+      menuItemQuantityInput.value = 1;
+    } else {
+      console.warn("Quantity input not found for menu item:", menuItemId);
+    }
+  },
+
+  attachCartEvents: function (container) {
+    console.log("Attaching cart events to:", container);
+
+    // Quantity control events
+    container.querySelectorAll(".quantity-control button").forEach((button) => {
+      button.onclick = (e) => {
+        e.preventDefault();
+        const isIncrease = button.classList.contains("increase");
+        this.updateQuantity(button, isIncrease ? 1 : -1);
+      };
+    });
+
+    // Remove button events
+    container.querySelectorAll(".remove-item-btn").forEach((button) => {
+      button.onclick = (e) => {
+        e.preventDefault();
+        const itemId = button.getAttribute("data-item-id");
+        const tableId = button.getAttribute("data-table-id");
+        this.removeFromCart(itemId, tableId);
+      };
+    });
+  },
+
+  showNotification: function (type, message) {
+    // Create notification element
+    const notification = document.createElement("div");
+    notification.className = `alert alert-${
+      type === "success" ? "success" : "danger"
+    } alert-dismissible fade show position-fixed`;
+    notification.style.top = "20px";
+    notification.style.right = "20px";
+    notification.style.zIndex = "9999";
+
+    notification.innerHTML = `
+      ${message}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+
+    // Add to document
+    document.body.appendChild(notification);
+
+    // Remove after 3 seconds
+    setTimeout(() => {
+      notification.remove();
+    }, 3000);
+  },
+};
+
+// Cart Handler
+const CartHandler = {
+  init() {
+    this.initButtons();
+    this.initQuantityControls();
+  },
+
+  initButtons() {
+    // Add to cart
+    document
+      .querySelectorAll(".btn-add-to-cart")
+      .forEach((btn) =>
+        btn.addEventListener("click", (e) => this.addToCart(e.target))
+      );
+
+    // Remove from cart
+    document
+      .querySelectorAll(".remove-item-btn")
+      .forEach((btn) =>
+        btn.addEventListener("click", (e) => this.removeFromCart(e.target))
+      );
+
+    // Place order
+    const placeOrderBtn = document.querySelector(".place-order-btn");
+    if (placeOrderBtn) {
+      placeOrderBtn.addEventListener("click", () =>
+        this.showOrderConfirmation()
+      );
+    }
+
+    // Payment
+    const paymentBtn = document.querySelector(".payment-btn");
+    if (paymentBtn) {
+      paymentBtn.addEventListener("click", () => this.showPaymentModal());
+    }
+  },
+
+  initQuantityControls() {
+    document.querySelectorAll(".quantity-control button").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        const isIncrease = btn.classList.contains("increase");
+        const input = btn
+          .closest(".quantity-control")
+          .querySelector(".item-quantity");
+        const currentValue = parseInt(input.value) || 1;
+        input.value = Math.max(
+          1,
+          Math.min(10, currentValue + (isIncrease ? 1 : -1))
+        );
+      });
+    });
+  },
+
+  async addToCart(button) {
+    const itemId = button.getAttribute("data-item-id");
+    const tableId = button.getAttribute("data-table-id");
+    const quantity =
+      parseInt(
+        button.closest(".product-actions")?.querySelector(".item-quantity")
+          ?.value
+      ) || 1;
+
+    try {
+      const response = await fetch("/menu/cart/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: `tableId=${tableId}&menuItemId=${itemId}&quantity=${quantity}`,
+      });
+
+      if (!response.ok)
+        throw new Error(`HTTP error! status: ${response.status}`);
+      const html = await response.text();
+
+      // Update cart sidebar
+      const sidebar = document.getElementById("cartSidebar");
+      if (sidebar) {
+        sidebar.innerHTML = html;
+        this.initButtons();
+      }
+
+      // Reset quantity and show success message
+      this.resetQuantity(itemId);
+      this.showToast("success", "Đã thêm món vào giỏ hàng");
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      this.showToast("error", "Đã xảy ra lỗi khi thêm vào giỏ hàng");
+    }
+  },
+
+  async removeFromCart(button) {
+    const itemId = button.getAttribute("data-item-id");
+    const tableId = button.getAttribute("data-table-id");
+
+    try {
+      const response = await fetch("/menu/cart/remove", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: `tableId=${tableId}&menuItemId=${itemId}`,
+      });
+
+      if (!response.ok)
+        throw new Error(`HTTP error! status: ${response.status}`);
+      const html = await response.text();
+
+      // Update cart sidebar
+      const sidebar = document.getElementById("cartSidebar");
+      if (sidebar) {
+        sidebar.innerHTML = html;
+        this.initButtons();
+      }
+
+      // Show success message
+      this.showToast("success", "Đã xóa món khỏi giỏ hàng");
+    } catch (error) {
+      console.error("Error removing from cart:", error);
+      this.showToast("error", "Đã xảy ra lỗi khi xóa khỏi giỏ hàng");
+    }
+  },
+
+  async updateQuantity(button) {
+    const itemId = button.getAttribute("data-item-id");
+    const tableId = button.getAttribute("data-table-id");
+    const isIncrease = button.classList.contains("increase");
+    const quantitySpan = button.parentElement.querySelector("span");
+    const currentQuantity = parseInt(quantitySpan.textContent) || 1;
+    const newQuantity = Math.max(
+      1,
+      Math.min(10, currentQuantity + (isIncrease ? 1 : -1))
+    );
+
+    try {
+      const response = await fetch("/menu/cart/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: `tableId=${tableId}&menuItemId=${itemId}&quantity=${newQuantity}`,
+      });
+
+      if (!response.ok)
+        throw new Error(`HTTP error! status: ${response.status}`);
+      const html = await response.text();
+
+      // Update cart sidebar
+      const sidebar = document.getElementById("cartSidebar");
+      if (sidebar) {
+        sidebar.innerHTML = html;
+        this.initButtons();
+      }
+
+      // Show success message
+      this.showToast("success", "Đã cập nhật số lượng");
+    } catch (error) {
+      console.error("Error updating quantity:", error);
+      this.showToast("error", "Đã xảy ra lỗi khi cập nhật số lượng");
+    }
+  },
+
+  resetQuantity(itemId) {
+    const input = document.querySelector(
+      `.product-actions .item-quantity[data-item-id="${itemId}"]`
+    );
+    if (input) input.value = 1;
+  },
+
+  showToast(type, message) {
+    const toast = document.createElement("div");
+    toast.className = `toast align-items-center text-white bg-${
+      type === "success" ? "success" : "danger"
+    } border-0`;
+    toast.setAttribute("role", "alert");
+    toast.setAttribute("aria-live", "assertive");
+    toast.setAttribute("aria-atomic", "true");
+
+    toast.innerHTML = `
+      <div class="d-flex">
+        <div class="toast-body">
+          ${message}
+        </div>
+      ${message}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+  },
+};

@@ -1,6 +1,9 @@
 package com.restaurant.orderfood.service.impl;
 
+import com.restaurant.orderfood.model.MenuCategory;
 import com.restaurant.orderfood.model.MenuItem;
+import com.restaurant.orderfood.model.MenuItemStatus;
+import com.restaurant.orderfood.repository.MenuCategoryRepository;
 import com.restaurant.orderfood.repository.MenuItemRepository;
 import com.restaurant.orderfood.service.MenuService;
 import jakarta.persistence.EntityNotFoundException;
@@ -15,6 +18,7 @@ import java.util.List;
 public class MenuServiceImpl implements MenuService {
 
     private final MenuItemRepository menuItemRepository;
+    private final MenuCategoryRepository menuCategoryRepository;
 
     @Override
     public MenuItem getMenuItemById(Integer id) {
@@ -28,23 +32,33 @@ public class MenuServiceImpl implements MenuService {
     }
 
     @Override
-    public List<MenuItem> getMenuItemsByCategory(String category) {
+    public List<MenuItem> getMenuItemsByCategoryId(Integer categoryId) {
+        MenuCategory category = menuCategoryRepository.findById(categoryId)
+                .orElseThrow(() -> new EntityNotFoundException("Category not found with id: " + categoryId));
         return menuItemRepository.findByCategory(category);
     }
 
     @Override
     public List<MenuItem> getAvailableMenuItems() {
-        return menuItemRepository.findByStatus(MenuItem.MenuItemStatus.AVAILABLE);
+        return menuItemRepository.findByStatus(MenuItemStatus.AVAILABLE);
     }
 
     @Override
-    public List<MenuItem> getAvailableMenuItemsByCategory(String category) {
-        return menuItemRepository.findByCategoryAndStatus(category, MenuItem.MenuItemStatus.AVAILABLE);
+    public List<MenuItem> getAvailableMenuItemsByCategoryId(Integer categoryId) {
+        MenuCategory category = menuCategoryRepository.findById(categoryId)
+                .orElseThrow(() -> new EntityNotFoundException("Category not found with id: " + categoryId));
+        return menuItemRepository.findByCategoryAndStatus(category, MenuItemStatus.AVAILABLE);
     }
 
     @Override
     @Transactional
     public MenuItem createMenuItem(MenuItem menuItem) {
+        if (menuItem.getCategory() != null && menuItem.getCategory().getId() != null) {
+            MenuCategory category = menuCategoryRepository.findById(menuItem.getCategory().getId())
+                    .orElseThrow(() -> new EntityNotFoundException(
+                            "Category not found with id: " + menuItem.getCategory().getId()));
+            menuItem.setCategory(category);
+        }
         return menuItemRepository.save(menuItem);
     }
 
@@ -53,15 +67,23 @@ public class MenuServiceImpl implements MenuService {
     public MenuItem updateMenuItem(Integer id, MenuItem menuItemDetails) {
         MenuItem menuItem = getMenuItemById(id);
         menuItem.setName(menuItemDetails.getName());
+        menuItem.setDescription(menuItemDetails.getDescription());
         menuItem.setPrice(menuItemDetails.getPrice());
-        menuItem.setCategory(menuItemDetails.getCategory());
+
+        if (menuItemDetails.getCategory() != null && menuItemDetails.getCategory().getId() != null) {
+            MenuCategory category = menuCategoryRepository.findById(menuItemDetails.getCategory().getId())
+                    .orElseThrow(() -> new EntityNotFoundException(
+                            "Category not found with id: " + menuItemDetails.getCategory().getId()));
+            menuItem.setCategory(category);
+        }
+
         menuItem.setStatus(menuItemDetails.getStatus());
         return menuItemRepository.save(menuItem);
     }
 
     @Override
     @Transactional
-    public MenuItem updateMenuItemStatus(Integer id, MenuItem.MenuItemStatus status) {
+    public MenuItem updateMenuItemStatus(Integer id, MenuItemStatus status) {
         MenuItem menuItem = getMenuItemById(id);
         menuItem.setStatus(status);
         return menuItemRepository.save(menuItem);

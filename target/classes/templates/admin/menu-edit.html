@@ -47,38 +47,20 @@
                   </div>
 
                   <div class="mb-3">
-                    <label for="category" class="form-label">Danh mục</label>
+                    <label for="categoryId" class="form-label">Danh mục</label>
                     <select
                       class="form-select"
-                      id="category"
-                      name="category"
+                      id="categoryId"
+                      name="categoryId"
                       required
                     >
                       <option value="">Chọn danh mục</option>
                       <option
-                        value="main"
-                        th:selected="${menuItem.category == 'main'}"
-                      >
-                        Món chính
-                      </option>
-                      <option
-                        value="appetizer"
-                        th:selected="${menuItem.category == 'appetizer'}"
-                      >
-                        Khai vị
-                      </option>
-                      <option
-                        value="dessert"
-                        th:selected="${menuItem.category == 'dessert'}"
-                      >
-                        Tráng miệng
-                      </option>
-                      <option
-                        value="beverage"
-                        th:selected="${menuItem.category == 'beverage'}"
-                      >
-                        Đồ uống
-                      </option>
+                        th:each="category : ${categories}"
+                        th:value="${category.id}"
+                        th:text="${category.name}"
+                        th:selected="${menuItem.category != null && menuItem.category.id == category.id}"
+                      ></option>
                     </select>
                   </div>
 

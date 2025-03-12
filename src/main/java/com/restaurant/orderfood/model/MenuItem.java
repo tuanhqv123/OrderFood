@@ -7,34 +7,33 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
-@Entity
-@Table(name = "menu_item")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Entity
+@Table(name = "menu_item")
 public class MenuItem {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "name", nullable = false)
+    @Column(nullable = false)
     private String name;
 
-    @Column(name = "price", nullable = false, precision = 10, scale = 2)
+    @Column
+    private String description;
+
+    @Column(nullable = false)
     private BigDecimal price;
 
-    @Column(name = "category", nullable = false)
-    private String category;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
+    private MenuCategory category;
 
     @Column(name = "image_url")
     private String imageUrl;
 
-    @Column(name = "status", nullable = false)
     @Enumerated(EnumType.STRING)
+    @Column
     private MenuItemStatus status = MenuItemStatus.AVAILABLE;
-
-    public enum MenuItemStatus {
-        AVAILABLE, UNAVAILABLE
-    }
 }

@@ -4,100 +4,100 @@ import com.restaurant.orderfood.dto.CartDto;
 import com.restaurant.orderfood.dto.CartItemDto;
 import com.restaurant.orderfood.model.MenuItem;
 import com.restaurant.orderfood.service.CartService;
-import com.restaurant.orderfood.service.MenuService;
-import jakarta.servlet.http.HttpSession;
-import lombok.RequiredArgsConstructor;
+import com.restaurant.orderfood.service.MenuItemService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
-@RequiredArgsConstructor
 public class CartServiceImpl implements CartService {
 
-    private final HttpSession session;
-    private final MenuService menuService;
+    private final Map<Integer, CartDto> carts = new ConcurrentHashMap<>();
 
-    private static final String CART_SESSION_KEY = "cart";
+    @Autowired
+    private MenuItemService menuItemService;
 
     @Override
     public CartDto getCart(Integer tableId) {
-        CartDto cart = (CartDto) session.getAttribute(CART_SESSION_KEY);
-
-        if (cart == null) {
-            cart = new CartDto();
-            cart.setTableId(tableId);
-            session.setAttribute(CART_SESSION_KEY, cart);
-        }
-
-        return cart;
+        return carts.computeIfAbsent(tableId, id -> {
+            CartDto cart = new CartDto();
+            cart.setTableId(id);
+            cart.setItems(new ArrayList<>());
+            cart.setTotal(BigDecimal.ZERO);
+            return cart;
+        });
     }
 
     @Override
     public CartDto addToCart(Integer tableId, Integer menuItemId, Integer quantity) {
         CartDto cart = getCart(tableId);
+        MenuItem menuItem = menuItemService.getMenuItemById(menuItemId);
 
-        // Get menu item
-        MenuItem menuItem = menuService.getMenuItemById(menuItemId);
+        if (menuItem != null) {
+            CartItemDto existingItem = cart.getItems().stream()
+                    .filter(item -> item.getMenuItemId().equals(menuItemId))
+                    .findFirst()
+                    .orElse(null);
 
-        // Check if item is available
-        if (menuItem.getStatus() == MenuItem.MenuItemStatus.UNAVAILABLE) {
-            throw new IllegalStateException("Menu item is unavailable");
+            if (existingItem != null) {
+                existingItem.setQuantity(existingItem.getQuantity() + quantity);
+            } else {
+                CartItemDto newItem = new CartItemDto();
+                newItem.setMenuItemId(menuItem.getId());
+                newItem.setName(menuItem.getName());
+                newItem.setPrice(menuItem.getPrice());
+                newItem.setQuantity(quantity);
+                cart.getItems().add(newItem);
+            }
+
+            calculateTotal(cart);
         }
-
-        // Create cart item
-        CartItemDto cartItem = new CartItemDto();
-        cartItem.setMenuItemId(menuItem.getId());
-        cartItem.setName(menuItem.getName());
-        cartItem.setPrice(menuItem.getPrice());
-        cartItem.setQuantity(quantity);
-        cartItem.setSubtotal(menuItem.getPrice().multiply(new BigDecimal(quantity)));
-        cartItem.setMenuItem(menuItem);
-
-        // Add to cart
-        cart.addItem(cartItem);
-
-        // Update session
-        session.setAttribute(CART_SESSION_KEY, cart);
 
         return cart;
     }
 
     @Override
-    public CartDto updateCartItem(Integer tableId, Integer menuItemId, Integer quantity) {
+    public CartDto updateItemQuantity(Integer tableId, Integer menuItemId, Integer quantity) {
         CartDto cart = getCart(tableId);
 
-        if (quantity <= 0) {
-            return removeFromCart(tableId, menuItemId);
-        }
+        cart.getItems().stream()
+                .filter(item -> item.getMenuItemId().equals(menuItemId))
+                .findFirst()
+                .ifPresent(item -> {
+                    if (quantity <= 0) {
+                        cart.getItems().remove(item);
+                    } else {
+                        item.setQuantity(Math.min(quantity, 10)); // Maximum quantity is 10
+                    }
+                });
 
-        cart.updateItem(menuItemId, quantity);
-
-        // Update session
-        session.setAttribute(CART_SESSION_KEY, cart);
-
+        calculateTotal(cart);
         return cart;
     }
 
     @Override
     public CartDto removeFromCart(Integer tableId, Integer menuItemId) {
         CartDto cart = getCart(tableId);
-
-        cart.removeItem(menuItemId);
-
-        // Update session
-        session.setAttribute(CART_SESSION_KEY, cart);
-
+        cart.getItems().removeIf(item -> item.getMenuItemId().equals(menuItemId));
+        calculateTotal(cart);
         return cart;
     }
 
     @Override
     public void clearCart(Integer tableId) {
         CartDto cart = getCart(tableId);
+        cart.getItems().clear();
+        cart.setTotal(BigDecimal.ZERO);
+    }
 
-        cart.clear();
-
-        // Update session
-        session.setAttribute(CART_SESSION_KEY, cart);
+    private void calculateTotal(CartDto cart) {
+        BigDecimal total = cart.getItems().stream()
+                .map(item -> item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        cart.setTotal(total);
     }
 }

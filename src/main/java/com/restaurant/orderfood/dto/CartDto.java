@@ -22,17 +22,14 @@ public class CartDto {
             if (existingItem.getMenuItemId().equals(item.getMenuItemId())) {
                 // Update quantity and subtotal
                 existingItem.setQuantity(existingItem.getQuantity() + item.getQuantity());
-                existingItem.setSubtotal(existingItem.getPrice().multiply(new BigDecimal(existingItem.getQuantity())));
-                // Keep the menuItem reference
-                if (item.getMenuItem() != null) {
-                    existingItem.setMenuItem(item.getMenuItem());
-                }
+                existingItem.calculateSubtotal();
                 updateTotal();
                 return;
             }
         }
 
         // Add new item
+        item.calculateSubtotal();
         items.add(item);
         updateTotal();
     }
@@ -41,7 +38,7 @@ public class CartDto {
         for (CartItemDto item : items) {
             if (item.getMenuItemId().equals(menuItemId)) {
                 item.setQuantity(quantity);
-                item.setSubtotal(item.getPrice().multiply(new BigDecimal(quantity)));
+                item.calculateSubtotal();
                 updateTotal();
                 return;
             }
@@ -58,10 +55,15 @@ public class CartDto {
         total = BigDecimal.ZERO;
     }
 
-    private void updateTotal() {
-        total = BigDecimal.ZERO;
-        for (CartItemDto item : items) {
-            total = total.add(item.getSubtotal());
-        }
+    public void updateTotal() {
+        total = items.stream()
+                .map(CartItemDto::getSubtotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    public void calculateTotal() {
+        total = items.stream()
+                .map(item -> item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }

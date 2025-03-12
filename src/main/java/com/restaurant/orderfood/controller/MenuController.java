@@ -2,8 +2,10 @@ package com.restaurant.orderfood.controller;
 
 import com.restaurant.orderfood.dto.CartDto;
 import com.restaurant.orderfood.model.MenuItem;
+import com.restaurant.orderfood.model.MenuItemStatus;
 import com.restaurant.orderfood.model.RestaurantTable;
 import com.restaurant.orderfood.service.CartService;
+import com.restaurant.orderfood.service.MenuCategoryService;
 import com.restaurant.orderfood.service.MenuItemService;
 import com.restaurant.orderfood.service.TableService;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +24,7 @@ public class MenuController {
     private final MenuItemService menuItemService;
     private final CartService cartService;
     private final TableService tableService;
+    private final MenuCategoryService menuCategoryService;
 
     @GetMapping
     public String showMenu(@RequestParam(name = "table") Integer table, Model model) {
@@ -29,11 +32,13 @@ public class MenuController {
         RestaurantTable restaurantTable = tableService.getOrCreateTable(table);
 
         // Lấy danh sách món ăn có sẵn
-        List<MenuItem> menuItems = menuItemService.getMenuItemsByStatus(MenuItem.MenuItemStatus.AVAILABLE);
+        List<MenuItem> menuItems = menuItemService.getMenuItemsByStatus(MenuItemStatus.AVAILABLE);
 
         // Lấy giỏ hàng hiện tại
         CartDto cart = cartService.getCart(table);
 
+        // Lấy danh sách danh mục
+        model.addAttribute("categories", menuCategoryService.getAllCategories());
         model.addAttribute("menuItems", menuItems);
         model.addAttribute("tableId", table);
         model.addAttribute("cart", cart);
@@ -41,9 +46,9 @@ public class MenuController {
         return "menu";
     }
 
-    @GetMapping("/category/{category}")
+    @GetMapping("/category/{categoryId}")
     public String showMenuByCategory(
-            @PathVariable String category,
+            @PathVariable Integer categoryId,
             @RequestParam(name = "table") Integer table,
             Model model) {
 
@@ -51,14 +56,16 @@ public class MenuController {
         RestaurantTable restaurantTable = tableService.getOrCreateTable(table);
 
         // Lấy danh sách món ăn theo danh mục và có sẵn
-        List<MenuItem> menuItems = menuItemService.getMenuItemsByCategoryAndStatus(
-                category, MenuItem.MenuItemStatus.AVAILABLE);
+        List<MenuItem> menuItems = menuItemService.getMenuItemsByCategoryIdAndStatus(
+                categoryId, MenuItemStatus.AVAILABLE);
 
         // Lấy giỏ hàng hiện tại
         CartDto cart = cartService.getCart(table);
 
+        // Lấy danh sách danh mục
+        model.addAttribute("categories", menuCategoryService.getAllCategories());
+        model.addAttribute("selectedCategoryId", categoryId);
         model.addAttribute("menuItems", menuItems);
-        model.addAttribute("category", category);
         model.addAttribute("tableId", table);
         model.addAttribute("cart", cart);
 
@@ -90,7 +97,7 @@ public class MenuController {
             RedirectAttributes redirectAttributes) {
 
         try {
-            cartService.updateCartItem(tableId, menuItemId, quantity);
+            cartService.updateItemQuantity(tableId, menuItemId, quantity);
             redirectAttributes.addFlashAttribute("success", "Đã cập nhật giỏ hàng");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
